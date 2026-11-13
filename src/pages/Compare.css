@@ -219,11 +219,19 @@
   color: var(--color-text);
 }
 
-/* Tabel Langkah Berurutan ke Bawah */
+/* Tabel Langkah: Bersebelahan di layar besar, bertumpuk di layar kecil */
 .compare-step-tables-list {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-20);
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--space-16);
+  align-items: start;
+}
+
+@media (max-width: 1100px) {
+  .compare-step-tables-list {
+    grid-template-columns: 1fr;
+    gap: var(--space-20);
+  }
 }
 
 .compare-step-table-card {

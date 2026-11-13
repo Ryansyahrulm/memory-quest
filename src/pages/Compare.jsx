@@ -319,19 +319,19 @@ export default function Compare() {
             </Card>
           </section>
 
-          {/* 3. Tiga Tabel Langkah Berurutan ke Bawah */}
+          {/* 3. Tiga Tabel Langkah Bersebelahan */}
           <section aria-labelledby="step-tables-title">
             <Card
               title="Perbandingan Langkah Frame Tiap Algoritma"
               id="step-tables-title"
-              description="Tabel langkah pergantian halaman ditampilkan berurutan ke bawah untuk mempermudah analisis perbandingan frame."
+              description="Tiga tabel ditampilkan bersebelahan agar pergantian halaman tiap algoritma mudah dibandingkan. Pada layar kecil, tabel ditampilkan bertumpuk."
             >
               <div className="compare-step-tables-list">
                 {/* Tabel Optimal */}
                 <div className="compare-step-table-card">
                   <header className="compare-step-table-header">
                     <span className="compare-step-table-title">
-                      Optimal (Belady OPT)
+                      Optimal (OPT)
                     </span>
                     <div className="compare-step-table-meta">
                       <Badge
@@ -358,7 +358,7 @@ export default function Compare() {
                 <div className="compare-step-table-card">
                   <header className="compare-step-table-header">
                     <span className="compare-step-table-title">
-                      Least Recently Used (LRU)
+                      LRU
                     </span>
                     <div className="compare-step-table-meta">
                       <Badge
@@ -385,7 +385,7 @@ export default function Compare() {
                 <div className="compare-step-table-card">
                   <header className="compare-step-table-header">
                     <span className="compare-step-table-title">
-                      First-In, First-Out (FIFO)
+                      FIFO
                     </span>
                     <div className="compare-step-table-meta">
                       <Badge

@@ -1,0 +1,513 @@
+/* ── Kontainer Utama ──────────────────────────────────────────────────────── */
+.quest-container {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-24);
+  max-width: 820px;
+  margin: 0 auto;
+}
+
+.quest-header {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-8);
+}
+
+.quest-header h1 {
+  font-size: var(--font-size-28);
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.quest-header p {
+  color: var(--color-text-muted);
+  font-size: var(--font-size-14);
+  margin: 0;
+}
+
+.quest-newbest-badge {
+  margin-top: var(--space-4);
+  align-self: flex-start;
+}
+
+/* ── Layar Pilih Level ───────────────────────────────────────────────────── */
+.quest-level-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--space-16);
+}
+
+@media (max-width: 640px) {
+  .quest-level-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.quest-level-card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-8);
+  padding: var(--space-20) var(--space-16);
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+.quest-level-card:hover {
+  border-color: var(--color-border-hover);
+  box-shadow: var(--shadow-sm);
+}
+
+.quest-level-label {
+  font-size: var(--font-size-16);
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.quest-level-desc {
+  font-size: var(--font-size-12);
+  color: var(--color-text-muted);
+  font-family: var(--font-mono);
+}
+
+.quest-level-best {
+  font-size: var(--font-size-12);
+  color: var(--color-text-muted);
+}
+
+.quest-level-best strong {
+  color: var(--color-accent);
+  font-family: var(--font-mono);
+}
+
+.quest-level-action {
+  margin-top: var(--space-4);
+}
+
+.quest-level-action .btn {
+  width: 100%;
+}
+
+/* Kotak Aturan */
+.quest-rules-box {
+  padding: var(--space-16);
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+}
+
+.quest-rules-box h3 {
+  font-size: var(--font-size-14);
+  font-weight: 600;
+  color: var(--color-text);
+  margin-bottom: var(--space-8);
+}
+
+.quest-rules-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  padding-left: var(--space-16);
+  font-size: var(--font-size-14);
+  color: var(--color-text-muted);
+  line-height: 1.6;
+}
+
+.quest-rules-list strong {
+  color: var(--color-text);
+}
+
+/* ── HUD Gameplay ────────────────────────────────────────────────────────── */
+.quest-hud-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-8);
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  padding: var(--space-12) var(--space-16);
+}
+
+.quest-hud {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-16);
+}
+
+.quest-hud-item {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.quest-hud-label {
+  font-size: var(--font-size-12);
+  color: var(--color-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  font-weight: 500;
+}
+
+.quest-hud-value {
+  font-size: var(--font-size-14);
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.quest-hud-mono {
+  font-family: var(--font-mono);
+}
+
+/* Progress Bar */
+.quest-progress-bar {
+  width: 100%;
+  height: 4px;
+  background-color: var(--color-bg);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.quest-progress-fill {
+  height: 100%;
+  background-color: var(--color-accent);
+  border-radius: 2px;
+  transition: width var(--transition-base);
+}
+
+/* ── Area Gameplay ───────────────────────────────────────────────────────── */
+.quest-play-area {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-20);
+}
+
+/* Info Halaman yang Diminta */
+.quest-step-info {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-4);
+}
+
+.quest-step-label {
+  font-size: var(--font-size-12);
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--color-text-muted);
+}
+
+.quest-page-number {
+  font-family: var(--font-mono);
+  font-size: 48px;
+  font-weight: 700;
+  line-height: 1;
+  color: var(--color-text);
+  letter-spacing: -1px;
+}
+
+/* Frame Section */
+.quest-frame-section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-8);
+}
+
+.quest-section-label {
+  font-size: var(--font-size-12);
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--color-text-muted);
+}
+
+.quest-evict-prompt {
+  font-size: var(--font-size-14);
+  color: var(--color-text);
+  line-height: 1.5;
+}
+
+/* Baris Frame */
+.quest-frames-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-8);
+}
+
+.quest-frame-slot {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 72px;
+  height: 72px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  background-color: var(--color-bg);
+  gap: var(--space-4);
+}
+
+.quest-frame-slot.empty {
+  background-color: var(--color-bg);
+  border-style: dashed;
+}
+
+.quest-frame-slot.empty .quest-frame-value {
+  color: var(--color-text-muted);
+}
+
+.quest-frame-label {
+  font-size: var(--font-size-12);
+  color: var(--color-text-muted);
+  font-weight: 500;
+}
+
+.quest-frame-value {
+  font-family: var(--font-mono);
+  font-size: var(--font-size-20);
+  font-weight: 600;
+  color: var(--color-text);
+  line-height: 1;
+}
+
+/* Frame bisa diklik */
+.quest-frame-slot.frame-btn {
+  cursor: pointer;
+  background-color: var(--color-surface);
+  border-color: var(--color-border);
+  transition: border-color var(--transition-fast), background-color var(--transition-fast);
+}
+
+.quest-frame-slot.frame-btn:hover {
+  border-color: var(--color-accent);
+  background-color: var(--color-accent-subtle);
+}
+
+.quest-frame-slot.frame-btn:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+}
+
+.quest-frame-slot.frame-btn.selected {
+  border-color: var(--color-accent);
+  background-color: var(--color-accent-subtle);
+}
+
+.quest-frame-slot.frame-btn.selected .quest-frame-value {
+  color: var(--color-accent);
+}
+
+/* ── Tombol Jawaban Hit / Fault ──────────────────────────────────────────── */
+.quest-answer-buttons {
+  display: flex;
+  gap: var(--space-12);
+}
+
+@media (max-width: 480px) {
+  .quest-answer-buttons {
+    flex-direction: column;
+  }
+}
+
+.quest-btn-answer {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-4);
+  padding: var(--space-16) var(--space-12);
+  border-radius: var(--radius);
+  border: 2px solid transparent;
+  cursor: pointer;
+  transition: background-color var(--transition-fast), border-color var(--transition-fast), color var(--transition-fast);
+  font-weight: 600;
+  font-size: var(--font-size-16);
+  line-height: 1.2;
+}
+
+.quest-btn-answer:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+}
+
+.quest-btn-sub {
+  font-size: var(--font-size-12);
+  font-weight: 400;
+  opacity: 0.85;
+}
+
+/* Hit → hijau */
+.quest-btn-hit {
+  background-color: var(--color-hit-subtle);
+  color: var(--color-hit);
+  border-color: #bbf7d0;
+}
+
+.quest-btn-hit:hover {
+  background-color: #bbf7d0;
+  border-color: var(--color-hit);
+}
+
+/* Fault → merah */
+.quest-btn-fault {
+  background-color: var(--color-fault-subtle);
+  color: var(--color-fault);
+  border-color: #fecaca;
+}
+
+.quest-btn-fault:hover {
+  background-color: #fecaca;
+  border-color: var(--color-fault);
+}
+
+/* ── Baris Petunjuk ──────────────────────────────────────────────────────── */
+.quest-hint-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-12);
+}
+
+.quest-hint-text {
+  font-size: var(--font-size-14);
+  color: var(--color-text-muted);
+  font-style: italic;
+  line-height: 1.4;
+  flex: 1;
+}
+
+/* ── Kotak Feedback ──────────────────────────────────────────────────────── */
+.quest-feedback-box {
+  padding: var(--space-16);
+  border: 1px solid var(--color-border);
+  border-left: 4px solid var(--color-border);
+  border-radius: var(--radius);
+  background-color: var(--color-surface);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-12);
+  transition: border-color var(--transition-fast);
+}
+
+.quest-feedback-box.correct {
+  border-left-color: var(--color-hit);
+  background-color: var(--color-hit-subtle);
+  border-color: #bbf7d0;
+}
+
+.quest-feedback-box.wrong {
+  border-left-color: var(--color-fault);
+  background-color: var(--color-fault-subtle);
+  border-color: #fecaca;
+}
+
+.quest-feedback-header {
+  display: flex;
+  align-items: center;
+  gap: var(--space-8);
+}
+
+.quest-score-delta {
+  font-family: var(--font-mono);
+  font-size: var(--font-size-14);
+  font-weight: 600;
+  color: var(--color-hit);
+}
+
+.quest-score-delta.wrong {
+  color: var(--color-fault);
+}
+
+.quest-feedback-message {
+  font-size: var(--font-size-14);
+  color: var(--color-text);
+  line-height: 1.5;
+  margin: 0;
+}
+
+.quest-feedback-action {
+  margin-top: var(--space-4);
+}
+
+/* ── Statistik Hasil ─────────────────────────────────────────────────────── */
+.quest-stats-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: var(--space-16);
+}
+
+/* ── Layar Hasil & Game Over ─────────────────────────────────────────────── */
+.quest-wrong-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-12);
+  padding: 0;
+  list-style: none;
+  counter-reset: none;
+}
+
+.quest-wrong-item {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  padding: var(--space-12) var(--space-16);
+  background-color: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+}
+
+.quest-wrong-header {
+  display: flex;
+  align-items: center;
+  gap: var(--space-8);
+}
+
+.quest-wrong-page {
+  font-family: var(--font-mono);
+  font-size: var(--font-size-14);
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.quest-wrong-explanation {
+  font-size: var(--font-size-14);
+  color: var(--color-text-muted);
+  line-height: 1.5;
+  margin: 0;
+}
+
+.quest-perfect-box {
+  padding: var(--space-16);
+  background-color: var(--color-hit-subtle);
+  border: 1px solid #bbf7d0;
+  border-radius: var(--radius);
+  font-size: var(--font-size-14);
+  color: var(--color-hit);
+  line-height: 1.5;
+}
+
+.quest-perfect-box strong {
+  font-weight: 600;
+}
+
+/* ── Tombol Aksi ─────────────────────────────────────────────────────────── */
+.quest-action-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-12);
+}
+
+@media (max-width: 480px) {
+  .quest-action-row {
+    flex-direction: column;
+  }
+
+  .quest-action-row .btn {
+    width: 100%;
+    text-align: center;
+  }
+}
+
