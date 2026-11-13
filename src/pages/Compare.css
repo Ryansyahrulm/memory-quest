@@ -1,0 +1,265 @@
+.compare-container {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-24);
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.compare-header h1 {
+  font-size: var(--font-size-28);
+  font-weight: 600;
+  color: var(--color-text);
+  margin-bottom: var(--space-4);
+}
+
+.compare-header p {
+  color: var(--color-text-muted);
+  font-size: var(--font-size-14);
+  margin: 0;
+}
+
+/* Panel Input */
+.compare-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-16);
+}
+
+.compare-input-row {
+  display: grid;
+  grid-template-columns: 1fr 200px auto;
+  gap: var(--space-16);
+  align-items: end;
+}
+
+@media (max-width: 768px) {
+  .compare-input-row {
+    grid-template-columns: 1fr;
+  }
+}
+
+.compare-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-8);
+  margin-top: var(--space-4);
+}
+
+.compare-actions .btn {
+  font-size: var(--font-size-12);
+  padding: var(--space-4) var(--space-8);
+}
+
+.belady-btn {
+  color: var(--color-accent) !important;
+  font-weight: 600;
+}
+
+/* Bagian Ringkasan & Grafik */
+.compare-overview-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-24);
+  align-items: start;
+}
+
+@media (max-width: 900px) {
+  .compare-overview-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Tabel Perbandingan */
+.comparison-table-wrapper {
+  overflow-x: auto;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+}
+
+.comparison-table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+  font-size: var(--font-size-14);
+}
+
+.comparison-table th,
+.comparison-table td {
+  padding: var(--space-8) var(--space-12);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.comparison-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.comparison-table thead tr {
+  background-color: var(--color-bg);
+  color: var(--color-text);
+  font-weight: 600;
+}
+
+.comparison-table .num-cell {
+  font-family: var(--font-mono);
+  font-size: var(--font-size-14);
+}
+
+.comparison-table .hit-cell {
+  color: var(--color-hit);
+  font-weight: 600;
+}
+
+.comparison-table .fault-cell {
+  color: var(--color-fault);
+  font-weight: 600;
+}
+
+.comparison-table tr.row-best {
+  background-color: var(--color-surface);
+}
+
+/* Bar Chart Horizontal Manual */
+.barchart-container {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-12);
+  padding: var(--space-16);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  background-color: var(--color-surface);
+}
+
+.barchart-title {
+  font-size: var(--font-size-14);
+  font-weight: 600;
+  color: var(--color-text);
+  margin-bottom: var(--space-4);
+}
+
+.barchart-row {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.barchart-label {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: var(--font-size-12);
+  color: var(--color-text);
+}
+
+.barchart-label strong {
+  font-weight: 600;
+}
+
+.barchart-track {
+  width: 100%;
+  height: 24px;
+  background-color: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm, 4px);
+  display: flex;
+  align-items: center;
+  position: relative;
+  overflow: hidden;
+}
+
+.barchart-bar {
+  height: 100%;
+  background-color: var(--color-fault);
+  border-radius: 2px;
+  transition: width var(--transition-base);
+}
+
+.barchart-bar.bar-best {
+  background-color: var(--color-hit);
+}
+
+.barchart-value-label {
+  position: absolute;
+  right: var(--space-8);
+  font-family: var(--font-mono);
+  font-size: var(--font-size-12);
+  font-weight: 600;
+  color: var(--color-text);
+  z-index: 1;
+}
+
+/* Paragraf Kesimpulan Otomatis */
+.compare-conclusion-box {
+  padding: var(--space-12) var(--space-16);
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-left: 3px solid var(--color-accent);
+  border-radius: var(--radius);
+  font-size: var(--font-size-14);
+  line-height: 1.5;
+  color: var(--color-text);
+}
+
+.compare-conclusion-box strong {
+  font-weight: 600;
+}
+
+.belady-callout {
+  padding: var(--space-12) var(--space-16);
+  background-color: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  font-size: var(--font-size-12);
+  color: var(--color-text-muted);
+  line-height: 1.5;
+}
+
+.belady-callout strong {
+  color: var(--color-text);
+}
+
+/* Tabel Langkah Berurutan ke Bawah */
+.compare-step-tables-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-20);
+}
+
+.compare-step-table-card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-12);
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  padding: var(--space-16);
+}
+
+.compare-step-table-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-8);
+  padding-bottom: var(--space-8);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.compare-step-table-title {
+  font-size: var(--font-size-16);
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.compare-step-table-meta {
+  display: flex;
+  align-items: center;
+  gap: var(--space-8);
+  font-size: var(--font-size-14);
+}
+
+.compare-ratio-text {
+  font-family: var(--font-mono);
+  color: var(--color-text-muted);
+}

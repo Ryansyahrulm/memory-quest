@@ -1,2 +1,1 @@
-// Custom hooks untuk simulasi dan state
-export {}
+export { default as useSimulation } from './useSimulation.js'

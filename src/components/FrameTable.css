@@ -1,0 +1,121 @@
+.frame-table-wrapper {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-8);
+}
+
+.frame-table-container {
+  width: 100%;
+  overflow-x: auto;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  background-color: var(--color-surface);
+  -webkit-overflow-scrolling: touch;
+  scroll-behavior: smooth;
+}
+
+.frame-table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: center;
+  font-size: var(--font-size-14);
+}
+
+.frame-table th,
+.frame-table td {
+  padding: var(--space-8) var(--space-12);
+  border: 1px solid var(--color-border);
+  min-width: 52px;
+  height: 40px;
+  transition: background-color 150ms ease, color 150ms ease;
+}
+
+.frame-table-sticky-col {
+  position: sticky;
+  left: 0;
+  background-color: var(--color-surface);
+  color: var(--color-text);
+  font-weight: 600;
+  text-align: left;
+  white-space: nowrap;
+  min-width: 110px;
+  z-index: 2;
+  box-shadow: 1px 0 0 var(--color-border);
+}
+
+.frame-table thead tr th {
+  background-color: var(--color-bg);
+  font-weight: 600;
+}
+
+.frame-table thead tr.page-row th.frame-table-sticky-col,
+.frame-table thead tr.step-number-row th.frame-table-sticky-col {
+  background-color: var(--color-bg);
+}
+
+.cell-mono {
+  font-family: var(--font-mono);
+  font-size: var(--font-size-14);
+}
+
+.page-val {
+  font-weight: 700;
+  font-size: var(--font-size-16);
+  color: var(--color-text);
+}
+
+.cell-empty {
+  color: var(--color-text-muted);
+}
+
+/* Sel Hit: warna hijau status dengan transisi 150ms */
+.cell-hit {
+  background-color: var(--color-hit-subtle);
+  color: var(--color-hit);
+  font-weight: 700;
+  transition: background-color 150ms ease, color 150ms ease;
+}
+
+/* Sel Fault Baru Masuk: warna merah status dengan transisi 150ms */
+.cell-fault-entry {
+  background-color: var(--color-fault-subtle);
+  color: var(--color-fault);
+  font-weight: 700;
+  transition: background-color 150ms ease, color 150ms ease;
+}
+
+/* Penanda Kolom Langkah Aktif */
+.col-current-header {
+  border-left: 2px solid var(--color-accent) !important;
+  border-right: 2px solid var(--color-accent) !important;
+  color: var(--color-accent);
+}
+
+.col-current-page {
+  border-left: 2px solid var(--color-accent) !important;
+  border-right: 2px solid var(--color-accent) !important;
+}
+
+.col-current-cell {
+  border-left: 2px solid var(--color-accent) !important;
+  border-right: 2px solid var(--color-accent) !important;
+}
+
+.frame-table tbody tr:last-child .col-current-cell {
+  border-bottom: 2px solid var(--color-accent) !important;
+}
+
+.cell-info {
+  font-size: var(--font-size-12);
+  color: var(--color-text-muted);
+  white-space: nowrap;
+}
+
+.frame-table-empty {
+  padding: var(--space-24);
+  text-align: center;
+  color: var(--color-text-muted);
+  border: 1px dashed var(--color-border);
+  border-radius: var(--radius);
+}
