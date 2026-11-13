@@ -1,3 +1,10 @@
+# Rule agent (lokal saja)
+rule.md
+RULE.md
+rule.MD
+.agent/
+.gemini/
+
 # Logs
 logs
 *.log
@@ -11,6 +18,7 @@ node_modules
 dist
 dist-ssr
 *.local
+.env
 
 # Editor directories and files
 .vscode/*
