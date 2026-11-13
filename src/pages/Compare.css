@@ -57,18 +57,11 @@
   font-weight: 600;
 }
 
-/* Bagian Ringkasan & Grafik */
+/* Bagian Ringkasan & Grafik: berurutan ke bawah */
 .compare-overview-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: var(--space-24);
-  align-items: start;
-}
-
-@media (max-width: 900px) {
-  .compare-overview-grid {
-    grid-template-columns: 1fr;
-  }
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-20);
 }
 
 /* Tabel Perbandingan */
@@ -219,19 +212,11 @@
   color: var(--color-text);
 }
 
-/* Tabel Langkah: Bersebelahan di layar besar, bertumpuk di layar kecil */
+/* Tabel Langkah Berurutan ke Bawah */
 .compare-step-tables-list {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: var(--space-16);
-  align-items: start;
-}
-
-@media (max-width: 1100px) {
-  .compare-step-tables-list {
-    grid-template-columns: 1fr;
-    gap: var(--space-20);
-  }
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-20);
 }
 
 .compare-step-table-card {
