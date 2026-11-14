@@ -1,687 +1,507 @@
-import { useState, useCallback, useEffect } from 'react'
+import { useState, useEffect, useMemo, useCallback } from 'react'
 import { Button, Card, Badge, StatBlock } from '../components'
-import { ALGORITHMS } from '../algorithms'
+import { simulate as simulateFIFO } from '../algorithms/fifo'
+import { simulate as simulateLRU } from '../algorithms/lru'
+import { simulate as simulateOptimal } from '../algorithms/optimal'
+import { getStepExplanation } from '../utils/explanation'
 import './Quest.css'
 
-// ─── Konfigurasi Level ──────────────────────────────────────────────────────
 const LEVELS = {
-  easy: {
-    key: 'easy',
+  mudah: {
+    id: 'mudah',
     label: 'Mudah',
-    algorithm: 'FIFO',
+    algoId: 'FIFO',
+    algoName: 'FIFO',
     frameCount: 3,
-    pageCount: 8,
-    maxPage: 5,
-    description: 'FIFO · 3 Frame · 8 Halaman',
-    storageKey: 'mq_best_easy',
+    pagesCount: 8,
+    maxPageNum: 5,
+    simulate: simulateFIFO,
   },
-  medium: {
-    key: 'medium',
+  sedang: {
+    id: 'sedang',
     label: 'Sedang',
-    algorithm: 'LRU',
+    algoId: 'LRU',
+    algoName: 'LRU',
     frameCount: 3,
-    pageCount: 12,
-    maxPage: 6,
-    description: 'LRU · 3 Frame · 12 Halaman',
-    storageKey: 'mq_best_medium',
+    pagesCount: 12,
+    maxPageNum: 6,
+    simulate: simulateLRU,
   },
-  hard: {
-    key: 'hard',
+  sulit: {
+    id: 'sulit',
     label: 'Sulit',
-    algorithm: 'Optimal',
+    algoId: 'Optimal',
+    algoName: 'Optimal',
     frameCount: 4,
-    pageCount: 15,
-    maxPage: 7,
-    description: 'Optimal · 4 Frame · 15 Halaman',
-    storageKey: 'mq_best_hard',
+    pagesCount: 15,
+    maxPageNum: 7,
+    simulate: simulateOptimal,
   },
 }
 
-const ALGO_EVICT_REASON = {
-  FIFO: 'masuk paling awal',
-  LRU: 'paling lama tidak digunakan',
-  Optimal: 'tidak akan digunakan paling lama ke depan',
-}
-
-// ─── Helper ─────────────────────────────────────────────────────────────────
-function generateRandomPages(count, maxPage) {
-  const pages = []
+// Pseudo-random generator sederhana berbasis seed (linear congruential generator)
+function generateSeededArray(seed, count, maxVal) {
+  let s = seed % 2147483647
+  if (s <= 0) s += 2147483646
+  const result = []
   for (let i = 0; i < count; i++) {
-    pages.push(Math.floor(Math.random() * (maxPage + 1)))
+    s = (s * 16807) % 2147483647
+    result.push(s % (maxVal + 1))
   }
-  return pages
+  return result
 }
 
-function readHighscore(storageKey) {
-  try {
-    const v = localStorage.getItem(storageKey)
-    return v !== null ? Number(v) : 0
-  } catch {
-    return 0
-  }
-}
+export default function Quest() {
+  const [levelKey, setLevelKey] = useState('mudah')
+  const [seed, setSeed] = useState(() => Math.floor(Math.random() * 10000) + 1)
 
-function writeHighscore(storageKey, score) {
-  try {
-    localStorage.setItem(storageKey, String(score))
-  } catch {
-    // ignore
-  }
-}
-
-function buildFeedbackMessage(step, algorithm, hitFaultCorrect, evictCorrect, playerHitFault, playerEvictIndex) {
-  const { page, isHit, replaced, frameIndex } = step
-  const frameNum = frameIndex + 1
-  const reason = ALGO_EVICT_REASON[algorithm] || ''
-
-  if (hitFaultCorrect && evictCorrect) {
-    // Benar
-    if (isHit) {
-      return `Benar! Halaman ${page} sudah ada di memori (Frame ${frameNum}).`
-    }
-    if (replaced === null) {
-      return `Benar! Halaman ${page} tidak ada di memori, dimuat ke Frame ${frameNum} yang masih kosong.`
-    }
-    return `Benar! Halaman ${page} tidak ada di memori. Halaman ${replaced} dikeluarkan karena ${reason}.`
-  }
-
-  // Salah
-  if (!hitFaultCorrect) {
-    const correctLabel = isHit ? 'Hit' : 'Fault'
-    if (isHit) {
-      return `Salah. Halaman ${page} sebenarnya sudah ada di memori (Hit), berada di Frame ${frameNum}.`
-    }
-    if (replaced === null) {
-      return `Salah. Halaman ${page} sebenarnya tidak ada di memori (${correctLabel}), dimuat ke Frame ${frameNum} yang masih kosong.`
-    }
-    return `Salah. Halaman ${page} sebenarnya tidak ada di memori (${correctLabel}). Halaman ${replaced} seharusnya dikeluarkan karena ${reason}.`
-  }
-
-  // hit/fault benar, eviksi salah
-  return `Salah pilihan. Seharusnya Frame ${frameNum} (Halaman ${replaced}) yang diganti karena ${reason}.`
-}
-
-// ─── Komponen Layar Pilih Level ──────────────────────────────────────────────
-function ScreenSelect({ onStart }) {
-  const highscores = {
-    easy: readHighscore(LEVELS.easy.storageKey),
-    medium: readHighscore(LEVELS.medium.storageKey),
-    hard: readHighscore(LEVELS.hard.storageKey),
-  }
-
-  return (
-    <div className="quest-container">
-      <header className="quest-header">
-        <h1>Quest</h1>
-        <p>
-          Uji pemahamanmu tentang page replacement. Tebak apakah setiap akses
-          menghasilkan Hit atau Fault, dan tentukan halaman mana yang dikeluarkan
-          dari memori.
-        </p>
-      </header>
-
-      <div className="quest-level-grid">
-        {Object.values(LEVELS).map((level) => (
-          <div key={level.key} className="quest-level-card">
-            <div className="quest-level-label">{level.label}</div>
-            <div className="quest-level-desc">{level.description}</div>
-            {highscores[level.key] > 0 && (
-              <div className="quest-level-best">
-                Skor tertinggi: <strong>{highscores[level.key]}</strong>
-              </div>
-            )}
-            <div className="quest-level-action">
-              <Button variant="primary" onClick={() => onStart(level.key)}>
-                Mulai
-              </Button>
-            </div>
-          </div>
-        ))}
-      </div>
-
-      <div className="quest-rules-box">
-        <h3>Cara Bermain</h3>
-        <ul className="quest-rules-list">
-          <li>Tiap langkah, tentukan apakah halaman yang diminta menghasilkan <strong>Hit</strong> (sudah ada di memori) atau <strong>Fault</strong> (tidak ada).</li>
-          <li>Jika fault dan memori penuh, pilih frame mana yang akan diganti.</li>
-          <li>Benar tanpa petunjuk: <strong>+15 poin</strong>. Benar dengan petunjuk: <strong>+10 poin</strong>.</li>
-          <li>Salah: kehilangan 1 nyawa. Tersisa 3 nyawa total.</li>
-          <li>Gunakan tombol <strong>Petunjuk</strong> jika butuh bantuan (mengurangi 5 poin).</li>
-        </ul>
-      </div>
-    </div>
-  )
-}
-
-// ─── Komponen HUD ────────────────────────────────────────────────────────────
-function GameHUD({ level, stepIndex, totalSteps, score, lives }) {
-  const progressPct = totalSteps > 0 ? Math.round((stepIndex / totalSteps) * 100) : 0
-
-  return (
-    <div className="quest-hud-wrapper">
-      <div className="quest-hud">
-        <div className="quest-hud-item">
-          <span className="quest-hud-label">Level</span>
-          <span className="quest-hud-value">{level.label}</span>
-        </div>
-        <div className="quest-hud-item">
-          <span className="quest-hud-label">Langkah</span>
-          <span className="quest-hud-value quest-hud-mono">
-            {stepIndex + 1} / {totalSteps}
-          </span>
-        </div>
-        <div className="quest-hud-item">
-          <span className="quest-hud-label">Skor</span>
-          <span className="quest-hud-value quest-hud-mono">{score}</span>
-        </div>
-        <div className="quest-hud-item">
-          <span className="quest-hud-label">Nyawa</span>
-          <span className="quest-hud-value quest-hud-mono">{lives} / 3</span>
-        </div>
-      </div>
-      <div className="quest-progress-bar" role="progressbar" aria-valuenow={progressPct} aria-valuemin={0} aria-valuemax={100}>
-        <div className="quest-progress-fill" style={{ width: `${progressPct}%` }} />
-      </div>
-    </div>
-  )
-}
-
-// ─── Komponen Frame Display ───────────────────────────────────────────────────
-function FrameSlots({ frames, frameCount, clickable = false, onClickFrame, selectedIndex }) {
-  const slots = Array.from({ length: frameCount }, (_, i) => frames[i] ?? null)
-
-  return (
-    <div className="quest-frames-row">
-      {slots.map((page, i) => {
-        const isEmpty = page === null
-        if (clickable && !isEmpty) {
-          return (
-            <button
-              key={i}
-              className={`quest-frame-slot frame-btn ${selectedIndex === i ? 'selected' : ''}`}
-              onClick={() => onClickFrame(i)}
-              aria-label={`Frame ${i + 1}: Halaman ${page}`}
-            >
-              <span className="quest-frame-label">F{i + 1}</span>
-              <span className="quest-frame-value">{page}</span>
-            </button>
-          )
-        }
-        return (
-          <div
-            key={i}
-            className={`quest-frame-slot ${isEmpty ? 'empty' : ''}`}
-            aria-label={isEmpty ? `Frame ${i + 1} kosong` : `Frame ${i + 1}: Halaman ${page}`}
-          >
-            <span className="quest-frame-label">F{i + 1}</span>
-            <span className="quest-frame-value">{isEmpty ? '—' : page}</span>
-          </div>
-        )
-      })}
-    </div>
-  )
-}
-
-// ─── Komponen Layar Gameplay ─────────────────────────────────────────────────
-function ScreenPlay({ levelKey, onGameOver, onFinish }) {
-  const level = LEVELS[levelKey]
-  const algo = ALGORITHMS[level.algorithm]
-
-  // Inisialisasi lazy: generate pages + simulate sekali
-  const [gameData] = useState(() => {
-    const pages = generateRandomPages(level.pageCount, level.maxPage)
-    const { steps } = algo.simulate(pages, level.frameCount)
-    return { pages, steps }
-  })
-
-  const { steps } = gameData
-  const totalSteps = steps.length
-
-  // State gameplay
+  // State Permainan
   const [stepIndex, setStepIndex] = useState(0)
   const [lives, setLives] = useState(3)
   const [score, setScore] = useState(0)
-  const [phase, setPhase] = useState('answer-hitfault') // 'answer-hitfault' | 'answer-evict' | 'feedback'
-  const [playerHitFault, setPlayerHitFault] = useState(null) // 'hit' | 'fault'
-  const [playerEvictIndex, setPlayerEvictIndex] = useState(null)
+  const [phase, setPhase] = useState('guess_hit_fault') // 'guess_hit_fault' | 'select_victim' | 'step_done' | 'game_over'
+  const [feedback, setFeedback] = useState(null)
   const [hintUsed, setHintUsed] = useState(false)
   const [hintText, setHintText] = useState('')
-  const [feedback, setFeedback] = useState(null) // { correct, message, scoreDelta }
-  const [wrongSteps, setWrongSteps] = useState([])
+  const [mistakes, setMistakes] = useState([])
+  const [correctAnswersCount, setCorrectAnswersCount] = useState(0)
 
-  const step = steps[stepIndex]
-  // Frame SEBELUM langkah ini diproses
-  const prevFrames = stepIndex > 0 ? steps[stepIndex - 1].frames : []
-  const frameCount = level.frameCount
-  const isFrameFull = prevFrames.length >= frameCount
+  const activeLevel = LEVELS[levelKey]
 
-  // Apakah fault + frame penuh → perlu pilih eviksi?
-  const needsEvict = !step.isHit && step.replaced !== null
+  // Hitung deretan referensi dan simulasikan ground truth
+  const { referenceString, simResult } = useMemo(() => {
+    const refs = generateSeededArray(seed, activeLevel.pagesCount, activeLevel.maxPageNum)
+    const result = activeLevel.simulate(refs, activeLevel.frameCount)
+    return { referenceString: refs, simResult: result }
+  }, [seed, activeLevel])
 
-  // ── Handler Petunjuk ──
-  const handleHint = useCallback(() => {
-    if (hintUsed) return
-    setHintUsed(true)
-    setScore((s) => Math.max(0, s - 5))
-
-    if (phase === 'answer-hitfault') {
-      const ans = step.isHit ? 'Hit' : 'Fault'
-      setHintText(`Petunjuk: Jawaban yang benar adalah ${ans}.`)
-    } else if (phase === 'answer-evict') {
-      setHintText(
-        `Petunjuk: Ganti Frame ${step.frameIndex + 1} (Halaman ${step.replaced}) karena ${ALGO_EVICT_REASON[level.algorithm]}.`
-      )
+  // Skor tertinggi dari localStorage
+  const storageKey = `mq_highscore_${levelKey}`
+  const [highScore, setHighScore] = useState(() => {
+    try {
+      return Number(localStorage.getItem(storageKey)) || 0
+    } catch {
+      return 0
     }
-  }, [hintUsed, phase, step, level.algorithm])
+  })
 
-  // ── Handler Hit/Fault ──
-  const handleAnswerHitFault = useCallback(
-    (answer) => {
-      setPlayerHitFault(answer)
-
-      if (!step.isHit && needsEvict) {
-        // Fault + frame penuh → tanya eviksi
-        setPhase('answer-evict')
-        setHintText('')
-      } else {
-        // Langsung evaluasi
-        const hitFaultCorrect = (answer === 'hit') === step.isHit
-        const correct = hitFaultCorrect // tidak ada eviksi
-        const msg = buildFeedbackMessage(step, level.algorithm, hitFaultCorrect, true, answer, null)
-        const delta = correct ? (hintUsed ? 10 : 15) : 0
-
-        if (correct) {
-          setScore((s) => s + delta)
-        } else {
-          const newLives = lives - 1
-          setLives(newLives)
-          setWrongSteps((ws) => [
-            ...ws,
-            {
-              stepIndex,
-              page: step.page,
-              explanation: msg,
-            },
-          ])
-          if (newLives <= 0) {
-            setFeedback({ correct: false, message: msg, scoreDelta: 0, gameOver: true })
-            setPhase('feedback')
-            return
-          }
-        }
-        setFeedback({ correct, message: msg, scoreDelta: delta, gameOver: false })
-        setPhase('feedback')
-      }
-    },
-    [step, needsEvict, hintUsed, lives, stepIndex, level.algorithm]
-  )
-
-  // ── Handler Pilih Frame (Eviksi) ──
-  const handleEvictFrame = useCallback(
-    (frameIdx) => {
-      setPlayerEvictIndex(frameIdx)
-
-      const hitFaultCorrect = playerHitFault === 'fault' // sudah pasti fault karena kita di phase evict
-      const evictCorrect = frameIdx === step.frameIndex
-      const correct = hitFaultCorrect && evictCorrect
-      const msg = buildFeedbackMessage(step, level.algorithm, hitFaultCorrect, evictCorrect, playerHitFault, frameIdx)
-      const delta = correct ? (hintUsed ? 10 : 15) : 0
-
-      if (correct) {
-        setScore((s) => s + delta)
-      } else {
-        const newLives = lives - 1
-        setLives(newLives)
-        setWrongSteps((ws) => [
-          ...ws,
-          {
-            stepIndex,
-            page: step.page,
-            explanation: msg,
-          },
-        ])
-        if (newLives <= 0) {
-          setFeedback({ correct: false, message: msg, scoreDelta: 0, gameOver: true })
-          setPhase('feedback')
-          return
-        }
-      }
-      setFeedback({ correct, message: msg, scoreDelta: delta, gameOver: false })
-      setPhase('feedback')
-    },
-    [step, playerHitFault, hintUsed, lives, stepIndex, level.algorithm]
-  )
-
-  // ── Handler Lanjut ──
-  const handleNext = useCallback(() => {
-    if (feedback?.gameOver) {
-      onGameOver({ score, lives: 0, stepIndex, wrongSteps })
-      return
-    }
-
-    const nextIndex = stepIndex + 1
-    if (nextIndex >= totalSteps) {
-      onFinish({ score, lives, wrongSteps, totalSteps })
-      return
-    }
-
-    setStepIndex(nextIndex)
-    setPhase('answer-hitfault')
-    setPlayerHitFault(null)
-    setPlayerEvictIndex(null)
+  // Mulai ulang game
+  const resetGame = useCallback((newSeed = seed) => {
+    setSeed(newSeed)
+    setStepIndex(0)
+    setLives(3)
+    setScore(0)
+    setPhase('guess_hit_fault')
+    setFeedback(null)
     setHintUsed(false)
     setHintText('')
+    setMistakes([])
+    setCorrectAnswersCount(0)
+  }, [seed])
+
+  // Ganti level
+  const handleSelectLevel = (newKey) => {
+    setLevelKey(newKey)
+    try {
+      const stored = Number(localStorage.getItem(`mq_highscore_${newKey}`)) || 0
+      setHighScore(stored)
+    } catch {
+      setHighScore(0)
+    }
+    setStepIndex(0)
+    setLives(3)
+    setScore(0)
+    setPhase('guess_hit_fault')
     setFeedback(null)
-  }, [feedback, stepIndex, totalSteps, score, lives, wrongSteps, onGameOver, onFinish])
+    setHintUsed(false)
+    setHintText('')
+    setMistakes([])
+    setCorrectAnswersCount(0)
+  }
+
+  // Kondisi frame sebelum langkah saat ini dieksekusi
+  const currentGroundStep = simResult.steps[stepIndex] || null
+  const prevFrames = useMemo(() => {
+    if (stepIndex === 0) return []
+    return simResult.steps[stepIndex - 1]?.frames || []
+  }, [simResult, stepIndex])
+
+  // Cek jika frame memori sebelum langkah ini sudah penuh
+  const isMemoryFull = prevFrames.length >= activeLevel.frameCount
+
+  // Selesaikan game dan update high score jika perlu
+  const finishGame = useCallback((finalScore) => {
+    setPhase('game_over')
+    if (finalScore > highScore) {
+      setHighScore(finalScore)
+      try {
+        localStorage.setItem(storageKey, String(finalScore))
+      } catch {
+        // Abaikan jika localStorage tidak tersedia
+      }
+    }
+  }, [highScore, storageKey])
+
+  // Handler tebakan Hit / Fault
+  const handleGuess = useCallback((playerGuessIsHit) => {
+    if (!currentGroundStep) return
+
+    const actualIsHit = currentGroundStep.isHit
+    const currentPage = currentGroundStep.page
+
+    if (playerGuessIsHit === actualIsHit) {
+      // Tebakan Benar
+      if (actualIsHit || !isMemoryFull) {
+        // Jika Hit atau (Fault tetapi memori belum penuh), langkah selesai langsung
+        const points = hintUsed ? 10 : 15
+        const newScore = score + points
+        setScore(newScore)
+        setCorrectAnswersCount((c) => c + 1)
+        setFeedback({
+          type: 'success',
+          text: `Benar! Halaman ${currentPage} ${actualIsHit ? 'adalah Hit' : 'adalah Fault (dimasukkan ke frame kosong)'}. (+${points} poin)`,
+        })
+        setPhase('step_done')
+      } else {
+        // Fault dan memori penuh: pemain harus memilih frame yang digantikan
+        setFeedback({
+          type: 'hint',
+          text: `Tepat, Page Fault terjadi! Karena semua ${activeLevel.frameCount} frame terisi, klik pada salah satu frame di atas untuk memilih halaman mana yang harus digantikan menurut aturan ${activeLevel.algoName}.`,
+        })
+        setPhase('select_victim')
+      }
+    } else {
+      // Tebakan Salah
+      const newLives = lives - 1
+      setLives(newLives)
+      const explanation = getStepExplanation(currentGroundStep, activeLevel.algoId)
+
+      setMistakes((prev) => [
+        ...prev,
+        {
+          step: stepIndex + 1,
+          page: currentPage,
+          yourAnswer: playerGuessIsHit ? 'Hit' : 'Fault',
+          correctAnswer: actualIsHit ? 'Hit' : 'Fault',
+          explanation,
+        },
+      ])
+
+      setFeedback({
+        type: 'error',
+        text: `Salah. Halaman ${currentPage} sebenarnya adalah ${actualIsHit ? 'Hit' : 'Fault'}. ${explanation}`,
+      })
+
+      if (newLives <= 0) {
+        finishGame(score)
+      } else {
+        setPhase('step_done')
+      }
+    }
+  }, [currentGroundStep, isMemoryFull, hintUsed, score, activeLevel, lives, stepIndex, finishGame])
+
+  // Handler memilih frame korban pergantian (select victim)
+  const handleSelectVictim = useCallback((selectedFrameIndex) => {
+    if (phase !== 'select_victim' || !currentGroundStep) return
+
+    const correctFrameIndex = currentGroundStep.frameIndex
+    const replacedPage = currentGroundStep.replaced
+    const currentPage = currentGroundStep.page
+
+    if (selectedFrameIndex === correctFrameIndex) {
+      // Pilihan Benar
+      const points = hintUsed ? 10 : 15
+      const newScore = score + points
+      setScore(newScore)
+      setCorrectAnswersCount((c) => c + 1)
+      setFeedback({
+        type: 'success',
+        text: `Tepat sekali! Halaman ${replacedPage} digantikan oleh ${currentPage} sesuai aturan ${activeLevel.algoName}. (+${points} poin)`,
+      })
+      setPhase('step_done')
+    } else {
+      // Pilihan Salah
+      const newLives = lives - 1
+      setLives(newLives)
+      const selectedPage = prevFrames[selectedFrameIndex]
+      const explanation = getStepExplanation(currentGroundStep, activeLevel.algoId)
+
+      setMistakes((prev) => [
+        ...prev,
+        {
+          step: stepIndex + 1,
+          page: currentPage,
+          yourAnswer: `Mengganti hal. ${selectedPage}`,
+          correctAnswer: `Mengganti hal. ${replacedPage}`,
+          explanation,
+        },
+      ])
+
+      setFeedback({
+        type: 'error',
+        text: `Kurang tepat. Bukan halaman ${selectedPage} yang diganti. ${explanation}`,
+      })
+
+      if (newLives <= 0) {
+        finishGame(score)
+      } else {
+        setPhase('step_done')
+      }
+    }
+  }, [phase, currentGroundStep, hintUsed, score, activeLevel, lives, prevFrames, stepIndex, finishGame])
+
+  // Lanjut ke langkah berikutnya
+  const handleNextStep = useCallback(() => {
+    if (stepIndex + 1 >= activeLevel.pagesCount) {
+      // Semua langkah selesai
+      finishGame(score)
+    } else {
+      setStepIndex((prev) => prev + 1)
+      setPhase('guess_hit_fault')
+      setFeedback(null)
+      setHintUsed(false)
+      setHintText('')
+    }
+  }, [stepIndex, activeLevel.pagesCount, finishGame, score])
+
+  // Keyboard shortcut listener
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (['INPUT', 'SELECT', 'TEXTAREA'].includes(document.activeElement?.tagName)) return
+
+      if (phase === 'guess_hit_fault') {
+        if (e.key === 'h' || e.key === 'H') {
+          e.preventDefault()
+          handleGuess(true)
+        } else if (e.key === 'f' || e.key === 'F') {
+          e.preventDefault()
+          handleGuess(false)
+        }
+      } else if (phase === 'select_victim') {
+        const num = parseInt(e.key, 10)
+        if (num >= 1 && num <= activeLevel.frameCount) {
+          e.preventDefault()
+          handleSelectVictim(num - 1)
+        }
+      } else if (phase === 'step_done') {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault()
+          handleNextStep()
+        }
+      }
+    }
+
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [phase, handleGuess, handleSelectVictim, handleNextStep, activeLevel.frameCount])
+
+  // Berikan petunjuk (hint)
+  const handleUseHint = () => {
+    if (hintUsed || !currentGroundStep) return
+    setHintUsed(true)
+
+    let clue = ''
+    switch (activeLevel.algoId) {
+      case 'FIFO':
+        clue = 'Petunjuk FIFO: Perhatikan halaman mana di antara frame yang masuk paling awal dalam urutan waktu.'
+        break
+      case 'LRU':
+        clue = 'Petunjuk LRU: Periksa kapan masing-masing halaman di frame terakhir kali diakses. Halaman yang paling lampau digunakan adalah korbannya.'
+        break
+      case 'Optimal':
+        clue = 'Petunjuk Optimal: Periksa sisa halaman di depan. Cari halaman di frame yang waktu pemakaiannya paling jauh atau tidak pernah dipakai lagi.'
+        break
+      default:
+        clue = 'Periksa urutan akses referensi.'
+    }
+
+    setHintText(clue)
+  }
+
+  const accuracy = stepIndex > 0 || phase === 'game_over'
+    ? Math.round((correctAnswersCount / Math.max(1, stepIndex + (phase === 'step_done' || phase === 'game_over' ? 1 : 0))) * 100)
+    : 100
 
   return (
     <div className="quest-container">
-      <GameHUD
-        level={level}
-        stepIndex={stepIndex}
-        totalSteps={totalSteps}
-        score={score}
-        lives={lives}
-      />
+      <header>
+        <h1>Mode Quest: Tantangan Manajemen Memori</h1>
+        <p style={{ marginTop: 'var(--space-4)', color: 'var(--color-text-muted)' }}>
+          Uji pemahaman Anda dengan menebak Hit/Fault dan menentukan halaman yang harus diganti pada setiap langkah.
+        </p>
+      </header>
 
-      <Card>
-        <div className="quest-play-area">
-          {/* Info langkah */}
-          <div className="quest-step-info">
-            <span className="quest-step-label">Halaman yang diminta</span>
-            <span className="quest-page-number">{step.page}</span>
+      {/* Pilihan Level */}
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 'var(--space-8)', alignItems: 'center' }}>
+        <span style={{ fontSize: 'var(--font-size-14)', fontWeight: 500 }}>Tingkat Kesulitan:</span>
+        {Object.values(LEVELS).map((lvl) => (
+          <Button
+            key={lvl.id}
+            variant={levelKey === lvl.id ? 'primary' : 'secondary'}
+            onClick={() => handleSelectLevel(lvl.id)}
+            style={{ fontSize: 'var(--font-size-12)', padding: '6px 12px' }}
+          >
+            {lvl.label} ({lvl.algoName}, {lvl.frameCount} Frame)
+          </Button>
+        ))}
+      </div>
+
+      {/* Header Info Status Permainan */}
+      <div className="quest-header-stats">
+        <div className="quest-stats-badges">
+          <span className="quest-lives">Nyawa: {lives}</span>
+          <span className="quest-score">Skor: {score}</span>
+          <span style={{ fontSize: 'var(--font-size-12)', color: 'var(--color-text-muted)' }}>
+            Skor Tertinggi ({activeLevel.label}): {highScore}
+          </span>
+        </div>
+        <span className="quest-step-progress">
+          Langkah {Math.min(stepIndex + 1, activeLevel.pagesCount)} dari {activeLevel.pagesCount} (Seed: #{seed})
+        </span>
+      </div>
+
+      {/* Konten Utama Game atau Layar Hasil Akhir */}
+      {phase !== 'game_over' ? (
+        <Card className="quest-target-card">
+          {/* Target Halaman yang Diminta */}
+          <div className="quest-target-page-box">
+            <span style={{ fontSize: 'var(--font-size-16)', fontWeight: 500 }}>
+              Halaman yang diakses berikutnya:
+            </span>
+            <span className="target-page-number">
+              {currentGroundStep?.page}
+            </span>
           </div>
 
-          {/* Kondisi frame saat ini (sebelum langkah diproses) */}
-          <div className="quest-frame-section">
-            <div className="quest-section-label">Kondisi Frame Saat Ini</div>
-            {phase === 'answer-evict' ? (
+          {/* Kondisi Frame Memori Saat Ini */}
+          <div>
+            <span style={{ fontSize: 'var(--font-size-14)', color: 'var(--color-text-muted)' }}>
+              Kondisi frame saat ini ({activeLevel.frameCount} slot):
+              {phase === 'select_victim' && ' (Klik pada kotak frame untuk memilih korban pergantian)'}
+            </span>
+            <div className="quest-frames-grid">
+              {Array.from({ length: activeLevel.frameCount }, (_, idx) => {
+                const val = prevFrames[idx]
+                const isSelectable = phase === 'select_victim'
+
+                return (
+                  <button
+                    key={idx}
+                    type="button"
+                    disabled={!isSelectable}
+                    onClick={() => handleSelectVictim(idx)}
+                    className={`quest-frame-box ${isSelectable ? 'is-selectable' : ''}`}
+                    aria-label={`Frame ${idx + 1}: ${val !== undefined ? `berisi halaman ${val}` : 'kosong'}`}
+                  >
+                    <span className="frame-box-label">Frame {idx + 1}</span>
+                    <span className="frame-box-value">
+                      {val !== undefined ? val : '—'}
+                    </span>
+                  </button>
+                )
+              })}
+            </div>
+          </div>
+
+          {/* Sisa Deretan Halaman Mendatang (Dukungan untuk kalkulasi Optimal) */}
+          <div style={{ fontSize: 'var(--font-size-12)', color: 'var(--color-text-muted)' }}>
+            Sisa deretan halaman ke depan:{' '}
+            <span style={{ fontFamily: 'var(--font-mono)' }}>
+              {referenceString.slice(stepIndex + 1).join(', ') || '(akhir deretan)'}
+            </span>
+          </div>
+
+          {/* Kotak Petunjuk jika Diaktifkan */}
+          {hintText && (
+            <div className="quest-feedback-box feedback-hint" role="note">
+              {hintText}
+            </div>
+          )}
+
+          {/* Kotak Umpan Balik Jawaban */}
+          {feedback && (
+            <div
+              className={`quest-feedback-box ${feedback.type === 'success' ? 'feedback-success' : feedback.type === 'error' ? 'feedback-error' : 'feedback-hint'}`}
+              role="alert"
+            >
+              {feedback.text}
+            </div>
+          )}
+
+          {/* Tombol Aksi Permainan */}
+          <div className="quest-actions-row">
+            {phase === 'guess_hit_fault' && (
               <>
-                <p className="quest-evict-prompt">
-                  Halaman {step.page} tidak ada di memori dan semua frame penuh.
-                  Klik frame mana yang akan diganti:
-                </p>
-                <FrameSlots
-                  frames={prevFrames}
-                  frameCount={frameCount}
-                  clickable
-                  onClickFrame={handleEvictFrame}
-                  selectedIndex={playerEvictIndex}
-                />
+                <Button variant="primary" onClick={() => handleGuess(true)}>
+                  Tebak Hit (H)
+                </Button>
+                <Button variant="secondary" onClick={() => handleGuess(false)}>
+                  Tebak Fault (F)
+                </Button>
+                {!hintUsed && (
+                  <Button variant="secondary" onClick={handleUseHint} style={{ marginLeft: 'auto' }}>
+                    Gunakan Petunjuk (-5 poin)
+                  </Button>
+                )}
               </>
-            ) : (
-              <FrameSlots
-                frames={prevFrames}
-                frameCount={frameCount}
-              />
+            )}
+
+            {phase === 'step_done' && (
+              <Button variant="primary" onClick={handleNextStep}>
+                {stepIndex + 1 >= activeLevel.pagesCount ? 'Lihat Hasil Akhir' : 'Langkah Berikutnya (Spasi)'}
+              </Button>
             )}
           </div>
 
-          {/* Area Jawaban */}
-          {phase === 'answer-hitfault' && (
-            <>
-              <div className="quest-answer-buttons">
-                <button
-                  className="quest-btn-answer quest-btn-hit"
-                  onClick={() => handleAnswerHitFault('hit')}
-                >
-                  Hit
-                  <span className="quest-btn-sub">Halaman sudah ada di memori</span>
-                </button>
-                <button
-                  className="quest-btn-answer quest-btn-fault"
-                  onClick={() => handleAnswerHitFault('fault')}
-                >
-                  Fault
-                  <span className="quest-btn-sub">Halaman tidak ada di memori</span>
-                </button>
-              </div>
-              <div className="quest-hint-row">
-                <Button
-                  variant="secondary"
-                  onClick={handleHint}
-                  disabled={hintUsed}
-                >
-                  {hintUsed ? 'Petunjuk sudah dipakai' : 'Petunjuk (-5 poin)'}
-                </Button>
-                {hintText && (
-                  <span className="quest-hint-text">{hintText}</span>
-                )}
-              </div>
-            </>
-          )}
+          <span style={{ fontSize: 'var(--font-size-12)', color: 'var(--color-text-muted)' }}>
+            Navigasi keyboard: [H] Hit | [F] Fault | [1..{activeLevel.frameCount}] Pilih Frame | [Enter/Spasi] Lanjut
+          </span>
+        </Card>
+      ) : (
+        /* Layar Hasil Akhir (Game Selesai / Kalah) */
+        <Card title={lives > 0 ? 'Tantangan Berhasil Diselesaikan' : 'Game Over (Kehabisan Nyawa)'}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: 'var(--space-12)', marginBottom: 'var(--space-16)' }}>
+            <StatBlock label="Skor Akhir" value={score} variant="accent" description="Poin diperoleh" />
+            <StatBlock label="Skor Tertinggi" value={highScore} variant="default" description="Tersimpan di peramban" />
+            <StatBlock label="Akurasi" value={`${accuracy}%`} variant={accuracy >= 70 ? 'hit' : 'fault'} description="Tingkat ketepatan tebakan" />
+            <StatBlock label="Sisa Nyawa" value={lives} variant={lives > 0 ? 'hit' : 'fault'} description="Dari 3 nyawa" />
+          </div>
 
-          {phase === 'answer-evict' && (
-            <div className="quest-hint-row">
-              <Button
-                variant="secondary"
-                onClick={handleHint}
-                disabled={hintUsed}
-              >
-                {hintUsed ? 'Petunjuk sudah dipakai' : 'Petunjuk (-5 poin)'}
-              </Button>
-              {hintText && (
-                <span className="quest-hint-text">{hintText}</span>
-              )}
-            </div>
-          )}
+          {/* Daftar Langkah yang Salah */}
+          <div>
+            <h3 style={{ fontSize: 'var(--font-size-14)', marginBottom: 'var(--space-8)' }}>
+              Evaluasi Langkah yang Keliru:
+            </h3>
+            {mistakes.length === 0 ? (
+              <p style={{ color: 'var(--color-hit)', fontSize: 'var(--font-size-14)' }}>
+                Luar biasa! Tidak ada langkah yang salah. Anda menguasai algoritma {activeLevel.algoName} dengan sempurna.
+              </p>
+            ) : (
+              <ul className="quest-summary-list">
+                {mistakes.map((m, idx) => (
+                  <li key={idx} className="quest-mistake-item">
+                    <strong>Langkah {m.step} (Halaman {m.page}):</strong>
+                    <br />
+                    Jawaban Anda: <Badge variant="fault">{m.yourAnswer}</Badge> | Jawaban Benar: <Badge variant="hit">{m.correctAnswer}</Badge>
+                    <p style={{ marginTop: 'var(--space-4)', color: 'var(--color-text-muted)' }}>
+                      Penjelasan: {m.explanation}
+                    </p>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
 
-          {/* Feedback */}
-          {phase === 'feedback' && feedback && (
-            <div className={`quest-feedback-box ${feedback.correct ? 'correct' : 'wrong'}`} role="status">
-              <div className="quest-feedback-header">
-                <Badge variant={feedback.correct ? 'hit' : 'fault'}>
-                  {feedback.correct ? 'Benar' : 'Salah'}
-                </Badge>
-                {feedback.correct && feedback.scoreDelta > 0 && (
-                  <span className="quest-score-delta">+{feedback.scoreDelta} poin</span>
-                )}
-                {!feedback.correct && (
-                  <span className="quest-score-delta wrong">−1 nyawa</span>
-                )}
-              </div>
-              <p className="quest-feedback-message">{feedback.message}</p>
-              <div className="quest-feedback-action">
-                <Button variant="primary" onClick={handleNext}>
-                  {feedback.gameOver
-                    ? 'Lihat Hasil'
-                    : stepIndex + 1 >= totalSteps
-                    ? 'Selesai'
-                    : 'Langkah Berikutnya'}
-                </Button>
-              </div>
-            </div>
-          )}
-        </div>
-      </Card>
-    </div>
-  )
-}
-
-// ─── Komponen Layar Hasil ─────────────────────────────────────────────────────
-function ScreenResult({ levelKey, score, lives, wrongSteps, totalSteps, onReplay, onSelectLevel }) {
-  const level = LEVELS[levelKey]
-  const correctCount = totalSteps - wrongSteps.length
-  const accuracy = totalSteps > 0 ? Math.round((correctCount / totalSteps) * 100) : 0
-  const prevBest = readHighscore(level.storageKey)
-  const isNewBest = score > prevBest
-
-  useEffect(() => {
-    if (isNewBest) {
-      writeHighscore(level.storageKey, score)
-    }
-  }, [isNewBest, level.storageKey, score])
-
-  return (
-    <div className="quest-container">
-      <header className="quest-header">
-        <h1>Quest Selesai!</h1>
-        <p>
-          Level <strong>{level.label}</strong> — {level.description}
-        </p>
-        {isNewBest && (
-          <Badge variant="hit" className="quest-newbest-badge">Skor Tertinggi Baru!</Badge>
-        )}
-      </header>
-
-      <div className="quest-stats-row">
-        <StatBlock label="Skor" value={score} variant="accent" />
-        <StatBlock label="Akurasi" value={`${accuracy}%`} variant={accuracy >= 70 ? 'hit' : 'fault'} />
-        <StatBlock label="Nyawa Tersisa" value={lives} />
-        <StatBlock label="Langkah Benar" value={`${correctCount} / ${totalSteps}`} />
-      </div>
-
-      {wrongSteps.length > 0 && (
-        <Card title={`Langkah yang Salah (${wrongSteps.length})`}>
-          <ol className="quest-wrong-list">
-            {wrongSteps.map((w, i) => (
-              <li key={i} className="quest-wrong-item">
-                <div className="quest-wrong-header">
-                  <Badge variant="fault">Langkah {w.stepIndex + 1}</Badge>
-                  <span className="quest-wrong-page">Halaman {w.page}</span>
-                </div>
-                <p className="quest-wrong-explanation">{w.explanation}</p>
-              </li>
-            ))}
-          </ol>
+          <div style={{ display: 'flex', gap: 'var(--space-12)', marginTop: 'var(--space-20)' }}>
+            <Button variant="primary" onClick={() => resetGame(seed)}>
+              Main Lagi (Seed Sama)
+            </Button>
+            <Button variant="secondary" onClick={() => resetGame(Math.floor(Math.random() * 10000) + 1)}>
+              Acak Tantangan Baru
+            </Button>
+          </div>
         </Card>
       )}
-
-      {wrongSteps.length === 0 && (
-        <div className="quest-perfect-box">
-          <strong>Sempurna!</strong> Semua {totalSteps} langkah dijawab dengan benar.
-        </div>
-      )}
-
-      <div className="quest-action-row">
-        <Button variant="primary" onClick={onReplay}>Main Lagi</Button>
-        <Button variant="secondary" onClick={onSelectLevel}>Pilih Level</Button>
-      </div>
     </div>
   )
-}
-
-// ─── Komponen Layar Game Over ─────────────────────────────────────────────────
-function ScreenGameOver({ levelKey, score, stepIndex, wrongSteps, onReplay, onSelectLevel }) {
-  const level = LEVELS[levelKey]
-  const correctCount = stepIndex - wrongSteps.length
-
-  return (
-    <div className="quest-container">
-      <header className="quest-header">
-        <h1>Game Over</h1>
-        <p>
-          Nyawa habis di langkah {stepIndex + 1} — Level <strong>{level.label}</strong>
-        </p>
-      </header>
-
-      <div className="quest-stats-row">
-        <StatBlock label="Skor" value={score} variant="accent" />
-        <StatBlock label="Langkah Tercapai" value={stepIndex + 1} />
-        <StatBlock label="Langkah Benar" value={Math.max(0, correctCount)} />
-      </div>
-
-      {wrongSteps.length > 0 && (
-        <Card title="Langkah yang Salah">
-          <ol className="quest-wrong-list">
-            {wrongSteps.map((w, i) => (
-              <li key={i} className="quest-wrong-item">
-                <div className="quest-wrong-header">
-                  <Badge variant="fault">Langkah {w.stepIndex + 1}</Badge>
-                  <span className="quest-wrong-page">Halaman {w.page}</span>
-                </div>
-                <p className="quest-wrong-explanation">{w.explanation}</p>
-              </li>
-            ))}
-          </ol>
-        </Card>
-      )}
-
-      <div className="quest-action-row">
-        <Button variant="primary" onClick={onReplay}>Coba Lagi</Button>
-        <Button variant="secondary" onClick={onSelectLevel}>Pilih Level</Button>
-      </div>
-    </div>
-  )
-}
-
-// ─── Root Component ───────────────────────────────────────────────────────────
-export default function Quest() {
-  const [screen, setScreen] = useState('select') // 'select' | 'playing' | 'result' | 'gameover'
-  const [selectedLevel, setSelectedLevel] = useState(null)
-  const [finalData, setFinalData] = useState(null)
-  const [replayKey, setReplayKey] = useState(0) // force remount untuk replay
-
-  const handleStart = useCallback((levelKey) => {
-    setSelectedLevel(levelKey)
-    setFinalData(null)
-    setReplayKey((k) => k + 1)
-    setScreen('playing')
-  }, [])
-
-  const handleFinish = useCallback((data) => {
-    setFinalData(data)
-    setScreen('result')
-  }, [])
-
-  const handleGameOver = useCallback((data) => {
-    setFinalData(data)
-    setScreen('gameover')
-  }, [])
-
-  const handleReplay = useCallback(() => {
-    setFinalData(null)
-    setReplayKey((k) => k + 1)
-    setScreen('playing')
-  }, [])
-
-  const handleSelectLevel = useCallback(() => {
-    setScreen('select')
-    setSelectedLevel(null)
-    setFinalData(null)
-  }, [])
-
-  if (screen === 'select') {
-    return <ScreenSelect onStart={handleStart} />
-  }
-
-  if (screen === 'playing' && selectedLevel) {
-    return (
-      <ScreenPlay
-        key={replayKey}
-        levelKey={selectedLevel}
-        onFinish={handleFinish}
-        onGameOver={handleGameOver}
-      />
-    )
-  }
-
-  if (screen === 'result' && finalData) {
-    return (
-      <ScreenResult
-        levelKey={selectedLevel}
-        score={finalData.score}
-        lives={finalData.lives}
-        wrongSteps={finalData.wrongSteps}
-        totalSteps={finalData.totalSteps}
-        onReplay={handleReplay}
-        onSelectLevel={handleSelectLevel}
-      />
-    )
-  }
-
-  if (screen === 'gameover' && finalData) {
-    return (
-      <ScreenGameOver
-        levelKey={selectedLevel}
-        score={finalData.score}
-        stepIndex={finalData.stepIndex}
-        wrongSteps={finalData.wrongSteps}
-        onReplay={handleReplay}
-        onSelectLevel={handleSelectLevel}
-      />
-    )
-  }
-
-  return null
 }

@@ -1,353 +1,244 @@
-import { useState, useEffect, useCallback } from 'react'
-import {
-  Card,
-  Button,
-  Field,
-  Select,
-  StatBlock,
-  Badge,
-  FrameTable,
-  PlaybackControls,
-} from '../components'
-import { useSimulation } from '../hooks'
-import {
-  validateReferenceString,
-  generateRandomReferenceString,
-  getStepExplanation,
-} from '../utils'
+import { useState } from 'react'
+import { useSimulation } from '../hooks/useSimulation'
+import { Button, Card, Field, Select, StatBlock, FrameTable } from '../components'
 import './Simulator.css'
 
-const EXAMPLE_REF_STRING = '7 0 1 2 0 3'
-const INITIAL_PAGES = [7, 0, 1, 2, 0, 3]
-
-const ALGORITHM_OPTIONS = [
-  { value: 'FIFO', label: 'FIFO (First-In, First-Out)' },
-  { value: 'LRU', label: 'LRU (Least Recently Used)' },
-  { value: 'Optimal', label: 'Optimal (Belady)' },
-]
-
-const FRAME_OPTIONS = [1, 2, 3, 4, 5, 6, 7].map((num) => ({
-  value: String(num),
-  label: `${num} Frame`,
-}))
-
-// Peta durasi kecepatan: 1 = Lambat (1500ms), 2 = Normal (800ms), 3 = Cepat (350ms)
-const SPEED_DURATIONS = {
-  1: 1500,
-  2: 800,
-  3: 350,
-}
-
 export default function Simulator() {
-  const [refString, setRefString] = useState(EXAMPLE_REF_STRING)
-  const [frameCount, setFrameCount] = useState('3')
-  const [algorithm, setAlgorithm] = useState('FIFO')
-  const [errorMessage, setErrorMessage] = useState('')
+  const {
+    refStringInput,
+    setRefStringInput,
+    frameCount,
+    setFrameCount,
+    algorithmId,
+    setAlgorithmId,
+    inputError,
+    runSimulation,
+    fillClassic,
+    randomize,
+    result,
+    currentStepIndex,
+    currentExplanation,
+    isPlaying,
+    speed,
+    setSpeed,
+    nextStep,
+    prevStep,
+    resetPlayback,
+    togglePlay,
+  } = useSimulation()
 
-  // State Kontrol Pemutaran
-  const [currentStep, setCurrentStep] = useState(1)
-  const [isPlaying, setIsPlaying] = useState(false)
-  const [speedLevel, setSpeedLevel] = useState(2)
+  const [limitToCurrentStep, setLimitToCurrentStep] = useState(true)
 
-  const { result, currentConfig, runSimulation } = useSimulation(
-    'FIFO',
-    3,
-    INITIAL_PAGES
-  )
+  const handleSubmit = (e) => {
+    e.preventDefault()
+    runSimulation()
+  }
 
   const totalSteps = result?.steps?.length || 0
 
-  // Timer Pemutaran Otomatis
-  useEffect(() => {
-    if (!isPlaying || totalSteps <= 1) return
-
-    const duration = SPEED_DURATIONS[speedLevel] || 800
-    const interval = setInterval(() => {
-      setCurrentStep((prev) => {
-        if (prev >= totalSteps) {
-          setIsPlaying(false)
-          return prev
-        }
-        return prev + 1
-      })
-    }, duration)
-
-    return () => clearInterval(interval)
-  }, [isPlaying, speedLevel, totalSteps])
-
-  // Navigasi Langkah
-  const handlePrev = useCallback(() => {
-    setIsPlaying(false)
-    setCurrentStep((prev) => Math.max(1, prev - 1))
-  }, [])
-
-  const handleNext = useCallback(() => {
-    setIsPlaying(false)
-    setCurrentStep((prev) => Math.min(totalSteps, prev + 1))
-  }, [totalSteps])
-
-  const handleTogglePlay = useCallback(() => {
-    if (isPlaying) {
-      setIsPlaying(false)
-    } else {
-      if (currentStep >= totalSteps) {
-        setCurrentStep(1)
-      }
-      setIsPlaying(true)
-    }
-  }, [isPlaying, currentStep, totalSteps])
-
-  const handleReset = useCallback(() => {
-    setIsPlaying(false)
-    setCurrentStep(1)
-  }, [])
-
-  // Dukung Navigasi Keyboard (Panah Kiri / Kanan)
-  useEffect(() => {
-    const handleKeyDown = (e) => {
-      const activeTag = document.activeElement ? document.activeElement.tagName : ''
-      // Jangan intersep tombol panah jika user sedang berinteraksi dengan form input
-      if (['INPUT', 'TEXTAREA', 'SELECT'].includes(activeTag)) {
-        return
-      }
-
-      if (e.key === 'ArrowLeft') {
-        e.preventDefault()
-        handlePrev()
-      } else if (e.key === 'ArrowRight') {
-        e.preventDefault()
-        handleNext()
-      }
-    }
-
-    window.addEventListener('keydown', handleKeyDown)
-    return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [handlePrev, handleNext])
-
-  // Handler Input Form
-  const handleRefStringChange = (e) => {
-    const value = e.target.value
-    setRefString(value)
-
-    if (errorMessage) {
-      const validation = validateReferenceString(value)
-      if (validation.isValid) {
-        setErrorMessage('')
-      }
-    }
-  }
-
-  const handleFillExample = () => {
-    setRefString(EXAMPLE_REF_STRING)
-    setErrorMessage('')
-    const validation = validateReferenceString(EXAMPLE_REF_STRING)
-    if (validation.isValid) {
-      runSimulation(validation.pages, Number(frameCount), algorithm)
-      setCurrentStep(1)
-      setIsPlaying(false)
-    }
-  }
-
-  const handleRandomize = () => {
-    const randomString = generateRandomReferenceString(12, 7)
-    setRefString(randomString)
-    setErrorMessage('')
-    const validation = validateReferenceString(randomString)
-    if (validation.isValid) {
-      runSimulation(validation.pages, Number(frameCount), algorithm)
-      setCurrentStep(1)
-      setIsPlaying(false)
-    }
-  }
-
-  const handleRun = (e) => {
-    if (e) e.preventDefault()
-
-    const validation = validateReferenceString(refString)
-    if (!validation.isValid) {
-      setErrorMessage(validation.error)
-      return
-    }
-
-    setErrorMessage('')
-    runSimulation(validation.pages, Number(frameCount), algorithm)
-    setCurrentStep(1)
-    setIsPlaying(false)
-  }
-
-  // Data langkah yang terlihat (hanya sampai langkah saat ini)
-  const visibleSteps = result?.steps ? result.steps.slice(0, currentStep) : []
-  const currentStepData = result?.steps ? result.steps[currentStep - 1] : null
-  const currentExplanation = currentStepData
-    ? getStepExplanation(currentStepData, currentConfig.algorithm)
-    : ''
-
-  // Statistik kumulatif hingga langkah saat ini
-  const currentHitCount = visibleSteps.filter((s) => s.isHit).length
-  const currentFaultCount = visibleSteps.length - currentHitCount
-  const currentHitRatio =
-    visibleSteps.length > 0
-      ? Number(((currentHitCount / visibleSteps.length) * 100).toFixed(1))
-      : 0
-
   return (
-    <div className="simulator-container">
-      <header className="simulator-header">
-        <h1>Simulator Pergantian Halaman</h1>
-        <p>
-          Simulasikan alokasi frame dan strategi page replacement (FIFO, LRU, Optimal) secara bertahap.
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-20)' }}>
+      <header>
+        <h1>Simulasi Manajemen Memori</h1>
+        <p style={{ marginTop: 'var(--space-4)', color: 'var(--color-text-muted)' }}>
+          Visualisasi pergantian halaman (page replacement) berbasis langkah demi langkah.
         </p>
       </header>
 
       <div className="simulator-layout">
-        {/* Panel Kiri: Input Parameter */}
-        <section aria-labelledby="input-panel-title">
-          <Card title="Parameter Simulasi" id="input-panel-title">
-            <form className="simulator-form" onSubmit={handleRun}>
-              <div>
-                <Field
-                  label="Reference String"
-                  id="reference-string-input"
-                  value={refString}
-                  onChange={handleRefStringChange}
-                  error={errorMessage}
-                  hint="Pisahkan angka dengan spasi atau koma (maks. 30 halaman, angka 0-99)"
-                  placeholder="Contoh: 7 0 1 2 0 3"
-                />
-                <div className="ref-string-actions">
-                  <Button variant="secondary" onClick={handleFillExample}>
-                    Isi contoh
-                  </Button>
-                  <Button variant="secondary" onClick={handleRandomize}>
-                    Acak
-                  </Button>
-                </div>
+        {/* Panel Kiri: Form Input Parameter */}
+        <aside>
+          <Card title="Parameter Simulasi" description="Konfigurasikan reference string, jumlah frame, dan algoritma.">
+            <form onSubmit={handleSubmit} className="simulator-form" noValidate>
+              <Field
+                label="Reference String"
+                id="refString"
+                value={refStringInput}
+                onChange={(e) => setRefStringInput(e.target.value)}
+                placeholder="Contoh: 7 0 1 2 0 3"
+                hint="Maks. 30 angka (0-99), pisahkan spasi atau koma"
+                error={inputError}
+                required
+              />
+
+              <div className="simulator-quick-buttons">
+                <Button variant="secondary" onClick={fillClassic} type="button" style={{ fontSize: 'var(--font-size-12)', padding: '4px 8px' }}>
+                  Isi contoh
+                </Button>
+                <Button variant="secondary" onClick={randomize} type="button" style={{ fontSize: 'var(--font-size-12)', padding: '4px 8px' }}>
+                  Acak
+                </Button>
               </div>
 
               <Select
                 label="Jumlah Frame"
-                id="frame-count-select"
+                id="frameCount"
                 value={frameCount}
                 onChange={(e) => setFrameCount(e.target.value)}
-                options={FRAME_OPTIONS}
-                hint="Alokasi slot frame memori (1-7)"
+                options={['1', '2', '3', '4', '5', '6', '7'].map((n) => ({
+                  value: n,
+                  label: `${n} Frame`,
+                }))}
               />
 
               <Select
-                label="Pilihan Algoritma"
-                id="algorithm-select"
-                value={algorithm}
-                onChange={(e) => setAlgorithm(e.target.value)}
-                options={ALGORITHM_OPTIONS}
-                hint="Strategi pemilihan korban penggantian halaman"
+                label="Algoritma"
+                id="algorithmId"
+                value={algorithmId}
+                onChange={(e) => setAlgorithmId(e.target.value)}
+                options={[
+                  { value: 'FIFO', label: 'First-In, First-Out (FIFO)' },
+                  { value: 'LRU', label: 'Least Recently Used (LRU)' },
+                  { value: 'Optimal', label: 'Optimal (Belady)' },
+                ]}
               />
 
-              <div className="form-action">
-                <Button type="submit" variant="primary">
-                  Jalankan
-                </Button>
-              </div>
+              <Button variant="primary" type="submit" style={{ marginTop: 'var(--space-8)' }}>
+                Jalankan
+              </Button>
             </form>
           </Card>
-        </section>
+        </aside>
 
-        {/* Panel Kanan: Area Hasil & Pemutaran */}
-        <section aria-labelledby="results-panel-title">
-          <Card title="Hasil Simulasi" id="results-panel-title">
-            <div className="results-panel">
-              {result && totalSteps > 0 ? (
-                <>
-                  <div className="results-meta">
-                    <div className="results-badges">
-                      <Badge variant="neutral">
-                        Algoritma: {currentConfig.algorithm}
-                      </Badge>
-                      <Badge variant="neutral">
-                        {currentConfig.frameCount} Frame
-                      </Badge>
-                      <Badge variant="neutral">
-                        Total {totalSteps} Akses
-                      </Badge>
-                    </div>
+        {/* Panel Kanan: Area Hasil, Playback, dan Visualisasi Tabel */}
+        <section className="simulator-results" aria-label="Hasil Simulasi">
+          {result && totalSteps > 0 ? (
+            <>
+              {/* Penjelasan Langkah Aktif */}
+              <div
+                className="step-explanation-box"
+                aria-live="polite"
+                aria-atomic="true"
+              >
+                {currentExplanation || 'Tekan Berikutnya atau Putar untuk memulai simulasi.'}
+              </div>
 
-                    <div className="results-legend">
-                      <div className="legend-item">
-                        <span className="legend-swatch swatch-hit" aria-hidden="true" />
-                        <span>Hit</span>
-                      </div>
-                      <div className="legend-item">
-                        <span className="legend-swatch swatch-fault" aria-hidden="true" />
-                        <span>Fault / Baru Masuk</span>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Kontrol Pemutaran */}
-                  <PlaybackControls
-                    currentStep={currentStep}
-                    totalSteps={totalSteps}
-                    isPlaying={isPlaying}
-                    speedLevel={speedLevel}
-                    onPrev={handlePrev}
-                    onNext={handleNext}
-                    onTogglePlay={handleTogglePlay}
-                    onReset={handleReset}
-                    onSpeedChange={setSpeedLevel}
-                  />
-
-                  {/* Kalimat Penjelasan per Langkah (di atas tabel) */}
-                  {currentExplanation && (
-                    <div
-                      className="step-explanation-box"
-                      role="status"
-                      aria-live="polite"
-                    >
-                      <span className="step-explanation-tag">
-                        Langkah {currentStep}:
-                      </span>
-                      <span className="step-explanation-text">
-                        {currentExplanation}
-                      </span>
-                    </div>
-                  )}
-
-                  {/* Tabel langkah: hanya menampilkan kolom sampai langkah saat ini */}
-                  <FrameTable
-                    steps={visibleSteps}
-                    frameCount={Number(currentConfig.frameCount || frameCount)}
-                  />
-
-                  {/* Baris Ringkasan Metrik (kumulatif hingga langkah saat ini) */}
-                  <div className="simulator-stats-row">
-                    <StatBlock
-                      label="Total Hit"
-                      value={currentHitCount}
-                      variant="hit"
-                      description={`Langkah ${currentStep} dari ${totalSteps}`}
-                    />
-                    <StatBlock
-                      label="Total Fault"
-                      value={currentFaultCount}
-                      variant="fault"
-                      description={`Langkah ${currentStep} dari ${totalSteps}`}
-                    />
-                    <StatBlock
-                      label="Hit Ratio"
-                      value={`${currentHitRatio}%`}
-                      variant="accent"
-                      description="Hingga langkah saat ini"
-                    />
-                  </div>
-                </>
-              ) : (
-                <div className="results-empty">
-                  <p>
-                    Belum ada simulasi yang dijalankan. Atur parameter lalu klik &quot;Jalankan&quot;.
-                  </p>
+              {/* Kontrol Pemutaran (Playback) */}
+              <div className="playback-controls">
+                <div className="playback-buttons">
+                  <Button
+                    variant="secondary"
+                    onClick={prevStep}
+                    disabled={currentStepIndex <= 0}
+                    aria-label="Langkah sebelumnya"
+                  >
+                    Sebelumnya
+                  </Button>
+                  <Button
+                    variant="primary"
+                    onClick={togglePlay}
+                    aria-label={isPlaying ? 'Jeda otomatis' : 'Putar otomatis'}
+                  >
+                    {isPlaying ? 'Jeda' : 'Putar'}
+                  </Button>
+                  <Button
+                    variant="secondary"
+                    onClick={nextStep}
+                    disabled={currentStepIndex >= totalSteps - 1}
+                    aria-label="Langkah berikutnya"
+                  >
+                    Berikutnya
+                  </Button>
+                  <Button
+                    variant="secondary"
+                    onClick={resetPlayback}
+                    disabled={currentStepIndex === 0 && !isPlaying}
+                    aria-label="Reset langkah ke awal"
+                  >
+                    Reset
+                  </Button>
                 </div>
-              )}
-            </div>
-          </Card>
+
+                <span className="playback-step-info">
+                  Langkah {currentStepIndex + 1} dari {totalSteps}
+                </span>
+
+                <div className="playback-speed-group">
+                  <span>Kecepatan:</span>
+                  <div className="speed-buttons" role="group" aria-label="Kecepatan pemutaran">
+                    <button
+                      type="button"
+                      className={`speed-btn ${speed === 'slow' ? 'active' : ''}`}
+                      onClick={() => setSpeed('slow')}
+                    >
+                      Lambat
+                    </button>
+                    <button
+                      type="button"
+                      className={`speed-btn ${speed === 'normal' ? 'active' : ''}`}
+                      onClick={() => setSpeed('normal')}
+                    >
+                      Normal
+                    </button>
+                    <button
+                      type="button"
+                      className={`speed-btn ${speed === 'fast' ? 'active' : ''}`}
+                      onClick={() => setSpeed('fast')}
+                    >
+                      Cepat
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              {/* Mode Tampilan Tabel (Per Langkah vs Semua) */}
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span style={{ fontSize: 'var(--font-size-12)', color: 'var(--color-text-muted)' }}>
+                  Navigasi keyboard: [Panah Kiri] Mundur | [Panah Kanan] Maju | [Spasi] Putar/Jeda
+                </span>
+                <label style={{ display: 'inline-flex', alignItems: 'center', gap: 'var(--space-8)', fontSize: 'var(--font-size-12)', cursor: 'pointer' }}>
+                  <input
+                    type="checkbox"
+                    checked={limitToCurrentStep}
+                    onChange={(e) => setLimitToCurrentStep(e.target.checked)}
+                  />
+                  Hanya tampilkan sampai langkah saat ini
+                </label>
+              </div>
+
+              {/* Tabel Langkah Pergantian Frame */}
+              <FrameTable
+                steps={result.steps}
+                frameCount={frameCount}
+                currentStepIndex={currentStepIndex}
+                limitToCurrentStep={limitToCurrentStep}
+              />
+
+              {/* Baris Ringkasan Metrik */}
+              <div className="summary-stats-grid">
+                <StatBlock
+                  label="Total Hit"
+                  value={result.totalHit}
+                  variant="hit"
+                  description="Halaman ditemukan di memori"
+                />
+                <StatBlock
+                  label="Total Fault"
+                  value={result.totalFault}
+                  variant="fault"
+                  description="Pergantian halaman terjadi"
+                />
+                <StatBlock
+                  label="Hit Ratio"
+                  value={`${result.hitRatio}%`}
+                  variant="accent"
+                  description="Efisiensi pemanfaatan cache"
+                />
+                <StatBlock
+                  label="Fault Ratio"
+                  value={`${(100 - result.hitRatio).toFixed(2)}%`}
+                  variant="default"
+                  description="Tingkat kegagalan pencarian"
+                />
+              </div>
+            </>
+          ) : (
+            <Card>
+              <p style={{ color: 'var(--color-text-muted)', textAlign: 'center', padding: 'var(--space-24)' }}>
+                {inputError || 'Masukkan parameter dan klik "Jalankan" untuk memulai simulasi.'}
+              </p>
+            </Card>
+          )}
         </section>
       </div>
     </div>

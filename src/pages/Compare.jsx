@@ -1,415 +1,256 @@
-import { useState } from 'react'
-import { Card, Button, Field, Select, Badge, FrameTable } from '../components'
-import { FIFO, LRU, Optimal } from '../algorithms'
-import {
-  validateReferenceString,
-  generateRandomReferenceString,
-  generateComparisonConclusion,
-  BELADY_REFERENCE_STRING,
-} from '../utils'
+import { useState, useMemo } from 'react'
+import { Button, Card, Field, Select, Badge, FrameTable } from '../components'
+import { simulate as simulateFIFO } from '../algorithms/fifo'
+import { simulate as simulateLRU } from '../algorithms/lru'
+import { simulate as simulateOptimal } from '../algorithms/optimal'
+import { parseReferenceString, PRESET_CLASSIC, PRESET_BELADY } from '../utils/parser'
 import './Compare.css'
 
-const INITIAL_REF_STRING = '7 0 1 2 0 3 0 4 2 3'
-const INITIAL_PAGES = [7, 0, 1, 2, 0, 3, 0, 4, 2, 3]
-
-const FRAME_OPTIONS = [1, 2, 3, 4, 5, 6, 7].map((num) => ({
-  value: String(num),
-  label: `${num} Frame`,
-}))
-
-function runAllAlgorithms(pages, frameCount) {
-  return {
-    FIFO: FIFO.simulate(pages, frameCount),
-    LRU: LRU.simulate(pages, frameCount),
-    Optimal: Optimal.simulate(pages, frameCount),
-  }
-}
-
 export default function Compare() {
-  const [refString, setRefString] = useState(INITIAL_REF_STRING)
-  const [frameCount, setFrameCount] = useState('3')
-  const [errorMessage, setErrorMessage] = useState('')
-  const [isBeladyActive, setIsBeladyActive] = useState(false)
+  const [refStringInput, setRefStringInput] = useState(PRESET_CLASSIC)
+  const [frameCount, setFrameCount] = useState(3)
+  const [inputError, setInputError] = useState(null)
+  const [isBeladyMode, setIsBeladyMode] = useState(false)
 
-  // Inisialisasi hasil langsung secara lazy tanpa cascading effect
-  const [results, setResults] = useState(() => runAllAlgorithms(INITIAL_PAGES, 3))
-  const [activeConfig, setActiveConfig] = useState({
-    pages: INITIAL_PAGES,
-    frameCount: 3,
-  })
-
-  const executeComparison = (pages, frames) => {
-    const newResults = runAllAlgorithms(pages, frames)
-    setResults(newResults)
-    setActiveConfig({ pages, frameCount: frames })
-  }
-
-  const handleRefStringChange = (e) => {
-    const value = e.target.value
-    setRefString(value)
-    setIsBeladyActive(value.trim() === BELADY_REFERENCE_STRING)
-
-    if (errorMessage) {
-      const validation = validateReferenceString(value)
-      if (validation.isValid) {
-        setErrorMessage('')
-      }
-    }
-  }
-
-  const handleFillExample = () => {
-    setRefString(INITIAL_REF_STRING)
-    setErrorMessage('')
-    setIsBeladyActive(false)
-    const validation = validateReferenceString(INITIAL_REF_STRING)
-    if (validation.isValid) {
-      executeComparison(validation.pages, Number(frameCount))
-    }
-  }
-
-  const handleRandomize = () => {
-    const randomString = generateRandomReferenceString(12, 7)
-    setRefString(randomString)
-    setErrorMessage('')
-    setIsBeladyActive(false)
-    const validation = validateReferenceString(randomString)
-    if (validation.isValid) {
-      executeComparison(validation.pages, Number(frameCount))
-    }
-  }
-
-  const handleBelady = () => {
-    setRefString(BELADY_REFERENCE_STRING)
-    setErrorMessage('')
-    setIsBeladyActive(true)
-    const validation = validateReferenceString(BELADY_REFERENCE_STRING)
-    if (validation.isValid) {
-      executeComparison(validation.pages, Number(frameCount))
-    }
-  }
-
-  const handleRun = (e) => {
-    if (e) e.preventDefault()
-
-    const validation = validateReferenceString(refString)
-    if (!validation.isValid) {
-      setErrorMessage(validation.error)
-      return
+  // Eksekusi perbandingan ketiga algoritma secara bersamaan
+  const comparisonData = useMemo(() => {
+    const { valid, numbers, error } = parseReferenceString(refStringInput)
+    if (!valid) {
+      return { error, valid: false }
     }
 
-    setErrorMessage('')
-    executeComparison(validation.pages, Number(frameCount))
+    const count = Math.max(1, Math.min(7, Number(frameCount) || 3))
+    const fifoResult = simulateFIFO(numbers, count)
+    const lruResult = simulateLRU(numbers, count)
+    const optResult = simulateOptimal(numbers, count)
+
+    // Simulasi khusus Anomali Belady jika mode aktif (FIFO 3 vs 4 frame)
+    const fifo3 = simulateFIFO(numbers, 3)
+    const fifo4 = simulateFIFO(numbers, 4)
+
+    const list = [
+      { id: 'Optimal', name: 'Optimal (OPT)', ...optResult },
+      { id: 'LRU', name: 'Least Recently Used (LRU)', ...lruResult },
+      { id: 'FIFO', name: 'First-In, First-Out (FIFO)', ...fifoResult },
+    ]
+
+    // Cari page fault terendah
+    const minFault = Math.min(...list.map((item) => item.totalFault))
+
+    // Generator teks kesimpulan otomatis
+    let conclusion = `Pada input ini, algoritma Optimal menghasilkan ${optResult.totalFault} page fault (${optResult.hitRatio}% hit ratio), `
+    if (optResult.totalFault < lruResult.totalFault && lruResult.totalFault < fifoResult.totalFault) {
+      conclusion += `lebih efisien dibandingkan LRU (${lruResult.totalFault} fault) dan FIFO (${fifoResult.totalFault} fault).`
+    } else if (lruResult.totalFault === fifoResult.totalFault) {
+      conclusion += `sementara LRU dan FIFO menghasilkan jumlah fault yang sama (${lruResult.totalFault} fault).`
+    } else {
+      conclusion += `sedangkan LRU menghasilkan ${lruResult.totalFault} fault dan FIFO menghasilkan ${fifoResult.totalFault} fault.`
+    }
+
+    return {
+      valid: true,
+      numbers,
+      list,
+      minFault,
+      conclusion,
+      fifoResult,
+      lruResult,
+      optResult,
+      belady: {
+        fifo3,
+        fifo4,
+        isAnomaly: fifo4.totalFault > fifo3.totalFault,
+      },
+    }
+  }, [refStringInput, frameCount])
+
+  const handleApplyBelady = () => {
+    setRefStringInput(PRESET_BELADY)
+    setFrameCount(3)
+    setIsBeladyMode(true)
+    setInputError(null)
   }
 
-  // Tentukan algoritma terbaik (fault paling sedikit)
-  const minFault = results
-    ? Math.min(
-        results.FIFO.totalFault,
-        results.LRU.totalFault,
-        results.Optimal.totalFault
-      )
-    : 0
+  const handleApplyClassic = () => {
+    setRefStringInput(PRESET_CLASSIC)
+    setFrameCount(3)
+    setIsBeladyMode(false)
+    setInputError(null)
+  }
 
-  const maxFault = results
-    ? Math.max(
-        results.FIFO.totalFault,
-        results.LRU.totalFault,
-        results.Optimal.totalFault,
-        1
-      )
-    : 1
-
-  const conclusionText = results ? generateComparisonConclusion(results) : ''
-
-  const comparisonRows = results
-    ? [
-        {
-          key: 'FIFO',
-          name: 'First-In, First-Out (FIFO)',
-          shortName: 'FIFO',
-          totalHit: results.FIFO.totalHit,
-          totalFault: results.FIFO.totalFault,
-          hitRatio: results.FIFO.hitRatio,
-          isBest: results.FIFO.totalFault === minFault,
-        },
-        {
-          key: 'LRU',
-          name: 'Least Recently Used (LRU)',
-          shortName: 'LRU',
-          totalHit: results.LRU.totalHit,
-          totalFault: results.LRU.totalFault,
-          hitRatio: results.LRU.hitRatio,
-          isBest: results.LRU.totalFault === minFault,
-        },
-        {
-          key: 'Optimal',
-          name: 'Optimal (Belady OPT)',
-          shortName: 'Optimal',
-          totalHit: results.Optimal.totalHit,
-          totalFault: results.Optimal.totalFault,
-          hitRatio: results.Optimal.hitRatio,
-          isBest: results.Optimal.totalFault === minFault,
-        },
-      ]
-    : []
+  // Hitung nilai maksimum fault untuk skala bar chart
+  const maxFaultInChart = useMemo(() => {
+    if (!comparisonData.valid) return 1
+    const maxVal = Math.max(...comparisonData.list.map((i) => i.totalFault))
+    return Math.max(maxVal, 1)
+  }, [comparisonData])
 
   return (
-    <div className="compare-container">
-      <header className="compare-header">
+    <div className="compare-layout">
+      <header>
         <h1>Bandingkan Algoritma</h1>
-        <p>
-          Analisis perbandingan performa page fault dan hit antar algoritma FIFO, LRU, dan Optimal secara simultan.
+        <p style={{ marginTop: 'var(--space-4)', color: 'var(--color-text-muted)' }}>
+          Komparasi langsung kinerja FIFO, LRU, dan Optimal pada reference string dan kapasitas memori yang sama.
         </p>
       </header>
 
-      {/* Panel Parameter Input */}
-      <Card title="Parameter Komparasi">
-        <form className="compare-form" onSubmit={handleRun}>
-          <div className="compare-input-row">
-            <div>
-              <Field
-                label="Reference String"
-                id="compare-ref-string"
-                value={refString}
-                onChange={handleRefStringChange}
-                error={errorMessage}
-                hint="Pisahkan angka dengan spasi atau koma (maks. 30 halaman, angka 0-99)"
-                placeholder="Contoh: 7 0 1 2 0 3 0 4 2 3"
-              />
-              <div className="compare-actions">
-                <Button variant="secondary" onClick={handleFillExample}>
-                  Isi contoh
-                </Button>
-                <Button variant="secondary" onClick={handleRandomize}>
-                  Acak
-                </Button>
-                <Button
-                  variant="secondary"
-                  onClick={handleBelady}
-                  className="belady-btn"
-                  title="Isi reference string Anomali Belady (1 2 3 4 1 2 5 1 2 3 4 5)"
-                >
-                  Coba Anomali Belady
-                </Button>
-              </div>
-            </div>
+      {/* Formulir Input Parameter */}
+      <Card className="compare-form-card" title="Parameter Perbandingan">
+        <div className="compare-form-grid">
+          <Field
+            label="Reference String"
+            id="compareRefString"
+            value={refStringInput}
+            onChange={(e) => {
+              setRefStringInput(e.target.value)
+              setIsBeladyMode(false)
+            }}
+            placeholder="Contoh: 7 0 1 2 0 3"
+            hint="Pisahkan angka dengan spasi atau koma"
+            error={comparisonData.valid ? null : comparisonData.error || inputError}
+          />
 
-            <Select
-              label="Jumlah Frame"
-              id="compare-frame-count"
-              value={frameCount}
-              onChange={(e) => setFrameCount(e.target.value)}
-              options={FRAME_OPTIONS}
-              hint="Alokasi frame untuk ketiga algoritma"
-            />
+          <Select
+            label="Jumlah Frame"
+            id="compareFrameCount"
+            value={frameCount}
+            onChange={(e) => setFrameCount(Number(e.target.value))}
+            options={['1', '2', '3', '4', '5', '6', '7'].map((n) => ({
+              value: n,
+              label: `${n} Frame`,
+            }))}
+          />
 
-            <div>
-              <Button type="submit" variant="primary">
-                Bandingkan
-              </Button>
-            </div>
+          <div style={{ display: 'flex', gap: 'var(--space-8)', paddingBottom: 'var(--space-12)' }}>
+            <Button variant="secondary" onClick={handleApplyClassic}>
+              Contoh Standar
+            </Button>
+            <Button variant="secondary" onClick={handleApplyBelady}>
+              Coba Anomali Belady
+            </Button>
           </div>
-        </form>
+        </div>
+
+        {/* Informasi Khusus Anomali Belady */}
+        {isBeladyMode && comparisonData.valid && (
+          <div className="belady-box" style={{ marginTop: 'var(--space-12)' }}>
+            <strong>Eksperimen Anomali Belady (FIFO):</strong>
+            <p style={{ fontSize: 'var(--font-size-14)' }}>
+              Pada algoritma FIFO dengan string <code>{PRESET_BELADY}</code>:
+              <br />
+              • Dengan <strong>3 Frame</strong>: menghasilkan <strong>{comparisonData.belady.fifo3.totalFault} Page Fault</strong>.
+              <br />
+              • Dengan <strong>4 Frame</strong>: menghasilkan <strong>{comparisonData.belady.fifo4.totalFault} Page Fault</strong>!
+            </p>
+            <p style={{ fontSize: 'var(--font-size-12)', color: 'var(--color-text-muted)' }}>
+              Menambah kapasitas frame dari 3 menjadi 4 justru meningkatkan page fault dari 9 ke 10. Fenomena ini membuktikan bahwa algoritma FIFO tidak memiliki properti stack.
+            </p>
+          </div>
+        )}
       </Card>
 
-      {/* Informasi Anomali Belady */}
-      {isBeladyActive && (
-        <aside className="belady-callout" role="note">
-          <strong>Eksperimen Anomali Belady:</strong> Pada reference string ini, perhatikan algoritma FIFO!
-          Saat menggunakan <strong>3 Frame</strong>, FIFO menghasilkan <strong>9 fault</strong>.
-          Namun jika Anda mengubah jumlah frame menjadi <strong>4 Frame</strong>, FIFO justru mengalami <strong>10 fault</strong> (meningkat).
-          Algoritma LRU dan Optimal kebal terhadap anomali ini (stack algorithm).
-        </aside>
-      )}
-
-      {/* 1. Tabel Perbandingan & 2. Bar Chart Horizontal */}
-      {results && (
+      {comparisonData.valid && (
         <>
-          <section aria-labelledby="comparison-summary-title">
-            <Card title="Ringkasan Performa Komparasi" id="comparison-summary-title">
-              <div className="compare-overview-grid">
-                {/* 1. Tabel Perbandingan */}
-                <div>
-                  <div className="comparison-table-wrapper">
-                    <table className="comparison-table" aria-label="Tabel ringkasan perbandingan algoritma">
-                      <thead>
-                        <tr>
-                          <th scope="col">Algoritma</th>
-                          <th scope="col">Page Hit</th>
-                          <th scope="col">Page Fault</th>
-                          <th scope="col">Hit Ratio</th>
-                          <th scope="col">Status</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {comparisonRows.map((row) => (
-                          <tr
-                            key={row.key}
-                            className={row.isBest ? 'row-best' : ''}
-                          >
-                            <td>
-                              <strong>{row.name}</strong>
-                            </td>
-                            <td className="num-cell hit-cell">{row.totalHit}</td>
-                            <td className="num-cell fault-cell">{row.totalFault}</td>
-                            <td className="num-cell">{row.hitRatio}%</td>
-                            <td>
-                              {row.isBest ? (
-                                <Badge variant="hit">Terbaik</Badge>
-                              ) : (
-                                <span style={{ color: 'var(--color-text-muted)' }}>—</span>
-                              )}
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
+          {/* 1. Tabel Perbandingan Kinerja */}
+          <Card title="Tabel Perbandingan Kinerja" description="Evaluasi total hit, page fault, dan hit ratio ketiga algoritma.">
+            <div className="compare-table-wrapper">
+              <table className="compare-table">
+                <thead>
+                  <tr>
+                    <th scope="col">Algoritma</th>
+                    <th scope="col">Page Hit</th>
+                    <th scope="col">Page Fault</th>
+                    <th scope="col">Hit Ratio</th>
+                    <th scope="col">Status</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {comparisonData.list.map((row) => {
+                    const isBest = row.totalFault === comparisonData.minFault
+                    return (
+                      <tr key={row.id} className={isBest ? 'best-row' : ''}>
+                        <td>
+                          <strong>{row.name}</strong>
+                        </td>
+                        <td style={{ fontFamily: 'var(--font-mono)' }}>{row.totalHit}</td>
+                        <td style={{ fontFamily: 'var(--font-mono)', fontWeight: 600 }}>{row.totalFault}</td>
+                        <td style={{ fontFamily: 'var(--font-mono)' }}>{row.hitRatio}%</td>
+                        <td>
+                          {isBest ? (
+                            <Badge variant="hit">Terbaik</Badge>
+                          ) : (
+                            <Badge variant="neutral">—</Badge>
+                          )}
+                        </td>
+                      </tr>
+                    )
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </Card>
+
+          {/* 2. Visualisasi Grafik Batang Horizontal (CSS/SVG Murni) */}
+          <Card title="Perbandingan Page Fault" description="Grafik batang horizontal perbandingan jumlah kegagalan halaman (semakin sedikit semakin baik).">
+            <div className="chart-container" role="img" aria-label="Grafik perbandingan page fault">
+              {comparisonData.list.map((row) => {
+                const percent = (row.totalFault / maxFaultInChart) * 100
+                const isBest = row.totalFault === comparisonData.minFault
+
+                return (
+                  <div key={row.id} className="chart-row">
+                    <span className="chart-label">{row.id}</span>
+                    <div className="chart-bar-track">
+                      <div
+                        className={`chart-bar-fill ${isBest ? 'is-best' : ''}`}
+                        style={{ width: `${percent}%` }}
+                      />
+                    </div>
+                    <span className="chart-value">{row.totalFault}</span>
                   </div>
-                </div>
+                )
+              })}
 
-                {/* 2. Bar Chart Horizontal Sederhana (Manual CSS/SVG) */}
-                <div>
-                  <div
-                    className="barchart-container"
-                    role="img"
-                    aria-label="Grafik batang horizontal jumlah page fault"
-                  >
-                    <div className="barchart-title">
-                      Perbandingan Jumlah Page Fault (Lebih sedikit lebih baik)
-                    </div>
-                    {comparisonRows.map((row) => {
-                      const barPercentage = Math.max(
-                        10,
-                        Number(((row.totalFault / maxFault) * 100).toFixed(1))
-                      )
-                      return (
-                        <div key={row.key} className="barchart-row">
-                          <div className="barchart-label">
-                            <span>
-                              <strong>{row.shortName}</strong>
-                            </span>
-                            {row.isBest && <Badge variant="hit">Terbaik</Badge>}
-                          </div>
-                          <div className="barchart-track">
-                            <div
-                              className={`barchart-bar ${row.isBest ? 'bar-best' : ''}`}
-                              style={{ width: `${barPercentage}%` }}
-                            />
-                            <span className="barchart-value-label">
-                              {row.totalFault} fault
-                            </span>
-                          </div>
-                        </div>
-                      )
-                    })}
+              <div className="chart-axis">
+                <span />
+                <div className="chart-axis-ticks">
+                  <span>0</span>
+                  <span>{Math.round(maxFaultInChart / 2)}</span>
+                  <span>{maxFaultInChart} (Fault)</span>
+                </div>
+                <span />
+              </div>
+            </div>
+          </Card>
+
+          {/* 3. Kesimpulan Otomatis */}
+          <div className="conclusion-box" aria-live="polite">
+            <strong>Kesimpulan Analisis:</strong>
+            <p style={{ marginTop: 'var(--space-4)' }}>{comparisonData.conclusion}</p>
+          </div>
+
+          {/* 4. Tiga Tabel Langkah Bersebelahan / Bertumpuk */}
+          <Card title="Detail Pergantian Frame Tiap Algoritma" description="Perbandingan langkah per langkah isi memori antara FIFO, LRU, dan Optimal.">
+            <div className="side-by-side-tables">
+              {comparisonData.list.map((row) => (
+                <div key={row.id} className="algorithm-subtable">
+                  <div className="algorithm-subtable-header">
+                    <h3 style={{ fontSize: 'var(--font-size-14)' }}>
+                      {row.name} ({row.totalFault} Fault, {row.totalHit} Hit)
+                    </h3>
+                    {row.totalFault === comparisonData.minFault && (
+                      <Badge variant="hit">Fault Terendah</Badge>
+                    )}
                   </div>
-                </div>
-              </div>
-            </Card>
-          </section>
-
-          {/* 4. Satu Paragraf Kesimpulan Otomatis */}
-          <section aria-labelledby="conclusion-title">
-            <Card title="Kesimpulan Analisis" id="conclusion-title">
-              <div className="compare-conclusion-box" role="status">
-                <p>
-                  <strong>Kesimpulan:</strong> {conclusionText}
-                </p>
-              </div>
-            </Card>
-          </section>
-
-          {/* 3. Tiga Tabel Langkah Bersebelahan */}
-          <section aria-labelledby="step-tables-title">
-            <Card
-              title="Perbandingan Langkah Frame Tiap Algoritma"
-              id="step-tables-title"
-              description="Tiga tabel ditampilkan bersebelahan agar pergantian halaman tiap algoritma mudah dibandingkan. Pada layar kecil, tabel ditampilkan bertumpuk."
-            >
-              <div className="compare-step-tables-list">
-                {/* Tabel Optimal */}
-                <div className="compare-step-table-card">
-                  <header className="compare-step-table-header">
-                    <span className="compare-step-table-title">
-                      Optimal (OPT)
-                    </span>
-                    <div className="compare-step-table-meta">
-                      <Badge
-                        variant={
-                          results.Optimal.totalFault === minFault
-                            ? 'hit'
-                            : 'neutral'
-                        }
-                      >
-                        {results.Optimal.totalFault} Fault
-                      </Badge>
-                      <span className="compare-ratio-text">
-                        {results.Optimal.hitRatio}% Hit
-                      </span>
-                    </div>
-                  </header>
                   <FrameTable
-                    steps={results.Optimal.steps}
-                    frameCount={activeConfig.frameCount}
+                    steps={row.steps}
+                    frameCount={frameCount}
+                    caption={`Visualisasi langkah ${row.name}`}
                   />
                 </div>
-
-                {/* Tabel LRU */}
-                <div className="compare-step-table-card">
-                  <header className="compare-step-table-header">
-                    <span className="compare-step-table-title">
-                      LRU
-                    </span>
-                    <div className="compare-step-table-meta">
-                      <Badge
-                        variant={
-                          results.LRU.totalFault === minFault
-                            ? 'hit'
-                            : 'neutral'
-                        }
-                      >
-                        {results.LRU.totalFault} Fault
-                      </Badge>
-                      <span className="compare-ratio-text">
-                        {results.LRU.hitRatio}% Hit
-                      </span>
-                    </div>
-                  </header>
-                  <FrameTable
-                    steps={results.LRU.steps}
-                    frameCount={activeConfig.frameCount}
-                  />
-                </div>
-
-                {/* Tabel FIFO */}
-                <div className="compare-step-table-card">
-                  <header className="compare-step-table-header">
-                    <span className="compare-step-table-title">
-                      FIFO
-                    </span>
-                    <div className="compare-step-table-meta">
-                      <Badge
-                        variant={
-                          results.FIFO.totalFault === minFault
-                            ? 'hit'
-                            : 'neutral'
-                        }
-                      >
-                        {results.FIFO.totalFault} Fault
-                      </Badge>
-                      <span className="compare-ratio-text">
-                        {results.FIFO.hitRatio}% Hit
-                      </span>
-                    </div>
-                  </header>
-                  <FrameTable
-                    steps={results.FIFO.steps}
-                    frameCount={activeConfig.frameCount}
-                  />
-                </div>
-              </div>
-            </Card>
-          </section>
+              ))}
+            </div>
+          </Card>
         </>
       )}
     </div>

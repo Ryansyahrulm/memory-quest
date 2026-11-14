@@ -1,32 +1,11 @@
-.simulator-container {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-24);
-  max-width: 1200px;
-  margin: 0 auto;
-}
-
-.simulator-header h1 {
-  font-size: var(--font-size-28);
-  font-weight: 600;
-  color: var(--color-text);
-  margin-bottom: var(--space-4);
-}
-
-.simulator-header p {
-  color: var(--color-text-muted);
-  font-size: var(--font-size-14);
-  margin: 0;
-}
-
 .simulator-layout {
   display: grid;
-  grid-template-columns: 360px 1fr;
+  grid-template-columns: 320px 1fr;
   gap: var(--space-24);
   align-items: start;
 }
 
-@media (max-width: 960px) {
+@media (max-width: 860px) {
   .simulator-layout {
     grid-template-columns: 1fr;
   }
@@ -35,119 +14,99 @@
 .simulator-form {
   display: flex;
   flex-direction: column;
-  gap: var(--space-16);
+  gap: var(--space-12);
 }
 
-.ref-string-actions {
+.simulator-quick-buttons {
   display: flex;
   gap: var(--space-8);
-  margin-top: var(--space-4);
+  margin-top: calc(var(--space-4) * -1);
+  margin-bottom: var(--space-8);
 }
 
-.ref-string-actions .btn {
-  font-size: var(--font-size-12);
-  padding: var(--space-4) var(--space-8);
-}
-
-.form-action {
-  margin-top: var(--space-8);
-}
-
-.form-action .btn {
-  width: 100%;
-}
-
-.results-panel {
+.simulator-results {
   display: flex;
   flex-direction: column;
   gap: var(--space-16);
 }
 
-.results-meta {
+/* Kotak penjelasan langkah */
+.step-explanation-box {
+  background-color: #f5f5f4;
+  border-left: 3px solid var(--color-accent);
+  border-radius: var(--radius);
+  padding: var(--space-12) var(--space-16);
+  font-size: var(--font-size-14);
+  line-height: 1.4;
+  color: var(--color-text);
+  min-height: 48px;
+  display: flex;
+  align-items: center;
+}
+
+/* Bar kontrol playback */
+.playback-controls {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
-  gap: var(--space-8);
-  padding-bottom: var(--space-8);
-  border-bottom: 1px solid var(--color-border);
+  gap: var(--space-12);
+  padding: var(--space-12) var(--space-16);
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
 }
 
-.results-badges {
+.playback-buttons {
   display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-8);
-}
-
-.results-legend {
-  display: flex;
-  flex-wrap: wrap;
   align-items: center;
-  gap: var(--space-16);
+  gap: var(--space-8);
+}
+
+.playback-step-info {
+  font-family: var(--font-mono);
   font-size: var(--font-size-12);
   color: var(--color-text-muted);
 }
 
-.legend-item {
+.playback-speed-group {
   display: flex;
   align-items: center;
   gap: var(--space-8);
-}
-
-.legend-swatch {
-  width: 12px;
-  height: 12px;
-  border-radius: 2px;
-}
-
-.legend-swatch.swatch-hit {
-  background-color: var(--color-hit-subtle);
-  border: 1px solid var(--color-hit);
-}
-
-.legend-swatch.swatch-fault {
-  background-color: var(--color-fault-subtle);
-  border: 1px solid var(--color-fault);
-}
-
-/* Kotak Penjelasan per Langkah */
-.step-explanation-box {
-  padding: var(--space-12) var(--space-16);
-  background-color: var(--color-bg);
-  border: 1px solid var(--color-border);
-  border-left: 3px solid var(--color-accent);
-  border-radius: var(--radius);
-  font-size: var(--font-size-14);
-  line-height: 1.5;
-  color: var(--color-text);
-  display: flex;
-  align-items: baseline;
-  gap: var(--space-8);
-}
-
-.step-explanation-tag {
-  font-weight: 600;
-  color: var(--color-text);
-  white-space: nowrap;
-}
-
-.step-explanation-text {
-  color: var(--color-text);
-}
-
-.simulator-stats-row {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
-  gap: var(--space-16);
-  margin-top: var(--space-8);
-  padding-top: var(--space-16);
-  border-top: 1px solid var(--color-border);
-}
-
-.results-empty {
-  padding: var(--space-32);
-  text-align: center;
+  font-size: var(--font-size-12);
   color: var(--color-text-muted);
-  border: 1px dashed var(--color-border);
+}
+
+.speed-buttons {
+  display: flex;
+  border: 1px solid var(--color-border);
   border-radius: var(--radius);
+  overflow: hidden;
+}
+
+.speed-btn {
+  padding: var(--space-4) var(--space-8);
+  font-size: var(--font-size-12);
+  border: none;
+  border-radius: 0;
+  background-color: var(--color-surface);
+  color: var(--color-text);
+  cursor: pointer;
+}
+
+.speed-btn:hover {
+  background-color: #f5f5f4;
+}
+
+.speed-btn.active {
+  background-color: var(--color-accent);
+  color: #ffffff;
+  font-weight: 600;
+}
+
+/* Baris ringkasan metrik */
+.summary-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+  gap: var(--space-12);
 }

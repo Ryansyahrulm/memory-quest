@@ -1,1 +1,1 @@
-export { default as useSimulation } from './useSimulation.js'
+export * from './useSimulation'

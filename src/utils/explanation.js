@@ -1,42 +1,35 @@
 /**
- * Menghasilkan satu kalimat penjelasan per langkah simulasi page replacement.
- * Disesuaikan dengan status (hit/fault), nomor frame, dan algoritma yang aktif.
- *
- * @param {Object} step - Objek langkah { page, frames, isHit, replaced, frameIndex }
- * @param {string} [algorithmKey='FIFO'] - Algoritma yang dipilih ('FIFO', 'LRU', 'Optimal')
- * @returns {string} Kalimat penjelasan lugas untuk langkah terkait
+ * Menghasilkan kalimat penjelasan akademis per langkah simulasi
+ * @param {object} step - Objek langkah { page, frames, isHit, replaced, frameIndex }
+ * @param {string} algorithmId - ID algoritma ('FIFO', 'LRU', 'Optimal')
+ * @returns {string}
  */
-export function getStepExplanation(step, algorithmKey = 'FIFO') {
-  if (!step) {
-    return ''
-  }
+export function getStepExplanation(step, algorithmId = 'FIFO') {
+  if (!step) return ''
 
   const { page, isHit, replaced, frameIndex } = step
-  const frameNumber = frameIndex + 1
+  const frameNum = (frameIndex ?? 0) + 1
 
-  // Kasus Page Hit: Halaman sudah berada dalam frame memori
   if (isHit) {
-    return `Halaman ${page} sudah ada di memori pada Frame ${frameNumber} (page hit). Tidak ada pergantian halaman.`
+    return `Halaman ${page} sudah ada di memori pada Frame ${frameNum} (page hit). Tidak ada pergantian halaman.`
   }
 
-  // Kasus Page Fault: Memori masih memiliki frame kosong (belum ada eviksi)
+  // Page Fault tanpa pergantian (frame masih ada yang kosong)
   if (replaced === null || replaced === undefined) {
-    return `Halaman ${page} tidak ada di memori (page fault). Dimuat ke Frame ${frameNumber} yang masih kosong.`
+    return `Halaman ${page} tidak ada di memori (page fault). Dimuat ke Frame ${frameNum} yang masih kosong.`
   }
 
-  // Kasus Page Fault dengan pergantian halaman (eviksi) berdasarkan strategi algoritma
-  switch (algorithmKey) {
+  // Page Fault dengan pergantian (frame penuh)
+  switch (algorithmId) {
     case 'FIFO':
       return `Halaman ${page} tidak ada di memori (page fault). Halaman ${replaced} dikeluarkan karena masuk paling awal.`
-
     case 'LRU':
       return `Halaman ${page} tidak ada di memori (page fault). Halaman ${replaced} dikeluarkan karena paling lama tidak digunakan.`
-
     case 'Optimal':
       return `Halaman ${page} tidak ada di memori (page fault). Halaman ${replaced} dikeluarkan karena tidak akan digunakan lagi dalam waktu paling lama.`
-
     default:
-      return `Halaman ${page} tidak ada di memori (page fault). Halaman ${replaced} dikeluarkan dari Frame ${frameNumber}.`
+      return `Halaman ${page} tidak ada di memori (page fault). Halaman ${replaced} dikeluarkan.`
   }
 }
 
+export default getStepExplanation

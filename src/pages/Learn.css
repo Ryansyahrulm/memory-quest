@@ -1,0 +1,114 @@
+.learn-container {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-24);
+  max-width: 860px;
+}
+
+.learn-section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-12);
+}
+
+.learn-concepts-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: var(--space-16);
+}
+
+.concept-card {
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  padding: var(--space-16);
+}
+
+.concept-title {
+  font-size: var(--font-size-16);
+  font-weight: 600;
+  margin-bottom: var(--space-4);
+  color: var(--color-text);
+}
+
+.concept-desc {
+  font-size: var(--font-size-14);
+  line-height: 1.5;
+  color: var(--color-text);
+}
+
+/* Bagian Algoritma */
+.algo-learn-card {
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  padding: var(--space-20);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-16);
+}
+
+.algo-header {
+  border-bottom: 1px solid var(--color-border);
+  padding-bottom: var(--space-8);
+}
+
+.algo-pro-con-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-16);
+  font-size: var(--font-size-14);
+}
+
+@media (max-width: 600px) {
+  .algo-pro-con-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.pro-list, .con-list {
+  padding-left: var(--space-20);
+  margin-top: var(--space-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+/* Tabel Mini Statis */
+.static-table-wrapper {
+  overflow-x: auto;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  margin-top: var(--space-8);
+}
+
+.static-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--font-size-12);
+  text-align: center;
+}
+
+.static-table th,
+.static-table td {
+  padding: var(--space-4) var(--space-8);
+  border: 1px solid var(--color-border);
+  min-width: 36px;
+}
+
+.static-table th {
+  background-color: #f5f5f4;
+  font-weight: 600;
+}
+
+.static-hit {
+  background-color: var(--color-hit-subtle);
+  color: var(--color-hit);
+  font-weight: 600;
+}
+
+.static-fault {
+  background-color: var(--color-fault-subtle);
+  color: var(--color-fault);
+  font-weight: 600;
+}

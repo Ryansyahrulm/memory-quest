@@ -1,121 +1,104 @@
-.frame-table-wrapper {
-  width: 100%;
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-8);
-}
-
 .frame-table-container {
   width: 100%;
   overflow-x: auto;
   border: 1px solid var(--color-border);
   border-radius: var(--radius);
   background-color: var(--color-surface);
-  -webkit-overflow-scrolling: touch;
-  scroll-behavior: smooth;
+  box-shadow: var(--shadow-sm);
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-border) transparent;
 }
 
 .frame-table {
   width: 100%;
-  border-collapse: collapse;
-  text-align: center;
+  border-collapse: separate;
+  border-spacing: 0;
   font-size: var(--font-size-14);
+  text-align: center;
+  min-width: 320px;
 }
 
 .frame-table th,
 .frame-table td {
   padding: var(--space-8) var(--space-12);
-  border: 1px solid var(--color-border);
-  min-width: 52px;
+  border-bottom: 1px solid var(--color-border);
+  border-right: 1px solid var(--color-border);
+  min-width: 44px;
   height: 40px;
-  transition: background-color 150ms ease, color 150ms ease;
+  vertical-align: middle;
 }
 
-.frame-table-sticky-col {
+/* Kolom header label di sisi kiri */
+.frame-table th.frame-label-col,
+.frame-table td.frame-label-col {
   position: sticky;
   left: 0;
-  background-color: var(--color-surface);
-  color: var(--color-text);
+  background-color: #f5f5f4;
   font-weight: 600;
+  color: var(--color-text);
   text-align: left;
-  white-space: nowrap;
   min-width: 110px;
   z-index: 2;
   box-shadow: 1px 0 0 var(--color-border);
 }
 
-.frame-table thead tr th {
-  background-color: var(--color-bg);
+/* Header baris reference string */
+.ref-header-cell {
+  background-color: #fafaf9;
+  font-family: var(--font-mono);
+  font-size: var(--font-size-14);
   font-weight: 600;
 }
 
-.frame-table thead tr.page-row th.frame-table-sticky-col,
-.frame-table thead tr.step-number-row th.frame-table-sticky-col {
-  background-color: var(--color-bg);
+.ref-header-cell.is-current-step {
+  background-color: var(--color-accent-subtle);
+  color: var(--color-accent);
+  border-bottom: 2px solid var(--color-accent);
 }
 
-.cell-mono {
+/* Baris status Hit/Fault */
+.status-row-cell {
+  font-size: var(--font-size-12);
+  font-weight: 600;
+  padding: var(--space-4);
   font-family: var(--font-mono);
-  font-size: var(--font-size-14);
 }
 
-.page-val {
-  font-weight: 700;
-  font-size: var(--font-size-16);
-  color: var(--color-text);
-}
-
-.cell-empty {
-  color: var(--color-text-muted);
-}
-
-/* Sel Hit: warna hijau status dengan transisi 150ms */
-.cell-hit {
+.status-cell-hit {
   background-color: var(--color-hit-subtle);
   color: var(--color-hit);
-  font-weight: 700;
-  transition: background-color 150ms ease, color 150ms ease;
 }
 
-/* Sel Fault Baru Masuk: warna merah status dengan transisi 150ms */
-.cell-fault-entry {
+.status-cell-fault {
   background-color: var(--color-fault-subtle);
   color: var(--color-fault);
-  font-weight: 700;
-  transition: background-color 150ms ease, color 150ms ease;
 }
 
-/* Penanda Kolom Langkah Aktif */
-.col-current-header {
-  border-left: 2px solid var(--color-accent) !important;
-  border-right: 2px solid var(--color-accent) !important;
-  color: var(--color-accent);
+/* Sel nilai frame */
+.frame-value-cell {
+  font-family: var(--font-mono);
+  font-size: var(--font-size-14);
+  transition: background-color var(--transition-base), color var(--transition-base);
 }
 
-.col-current-page {
-  border-left: 2px solid var(--color-accent) !important;
-  border-right: 2px solid var(--color-accent) !important;
-}
-
-.col-current-cell {
-  border-left: 2px solid var(--color-accent) !important;
-  border-right: 2px solid var(--color-accent) !important;
-}
-
-.frame-table tbody tr:last-child .col-current-cell {
-  border-bottom: 2px solid var(--color-accent) !important;
-}
-
-.cell-info {
-  font-size: var(--font-size-12);
+.frame-value-empty {
   color: var(--color-text-muted);
-  white-space: nowrap;
 }
 
-.frame-table-empty {
-  padding: var(--space-24);
-  text-align: center;
-  color: var(--color-text-muted);
-  border: 1px dashed var(--color-border);
-  border-radius: var(--radius);
+/* Highlight saat frame dimasuki atau diganti */
+.frame-value-cell.cell-hit-active {
+  background-color: var(--color-hit-subtle);
+  color: var(--color-hit);
+  font-weight: 600;
+}
+
+.frame-value-cell.cell-fault-active {
+  background-color: var(--color-fault-subtle);
+  color: var(--color-fault);
+  font-weight: 600;
+}
+
+/* Indikator kolom saat ini */
+.col-current-step {
+  background-color: #f8fafc;
 }
