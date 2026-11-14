@@ -13,35 +13,32 @@ export default function Learn() {
       {/* Bagian 1: Konsep Dasar */}
       <section className="learn-section">
         <h2>1. Konsep Dasar</h2>
-        <div className="learn-concepts-grid">
-          <div className="concept-card">
-            <h3 className="concept-title">Page Fault</h3>
-            <p className="concept-desc">
-              Kondisi saat prosesor membutuhkan halaman memori yang belum termuat pada frame RAM fisik, sehingga sistem operasi harus mengambilnya dari storage sekunder (swap/pagefile).
-            </p>
+        <dl className="concept-dl">
+          <div className="concept-dl-item">
+            <dt className="concept-dt">Page Fault</dt>
+            <dd className="concept-dd">
+              Kondisi saat halaman yang dibutuhkan prosesor belum ada di frame RAM. Sistem operasi harus mengambilnya dari storage sekunder, sehingga terjadi interupsi dan proses melambat.
+            </dd>
           </div>
-
-          <div className="concept-card">
-            <h3 className="concept-title">Page Hit</h3>
-            <p className="concept-desc">
-              Kondisi saat halaman yang diminta oleh prosesor sudah berada di salah satu frame memori utama (RAM), sehingga akses data dapat berlangsung langsung tanpa interupsi I/O.
-            </p>
+          <div className="concept-dl-item">
+            <dt className="concept-dt">Page Hit</dt>
+            <dd className="concept-dd">
+              Kondisi saat halaman yang diminta sudah ada di salah satu frame RAM. Akses berlangsung langsung tanpa interupsi I/O.
+            </dd>
           </div>
-
-          <div className="concept-card">
-            <h3 className="concept-title">Frame</h3>
-            <p className="concept-desc">
-              Blok penyimpanan memori fisik berukuran tetap pada RAM. Setiap frame dapat menampung tepat satu halaman (page) memori virtual berukuran sama.
-            </p>
+          <div className="concept-dl-item">
+            <dt className="concept-dt">Frame</dt>
+            <dd className="concept-dd">
+              Slot memori fisik (RAM) berukuran tetap. Setiap frame menampung tepat satu halaman (page) dari memori virtual.
+            </dd>
           </div>
-
-          <div className="concept-card">
-            <h3 className="concept-title">Reference String</h3>
-            <p className="concept-desc">
-              Urutan nomor halaman memori yang diakses oleh proses komputer dari waktu ke waktu selama program dijalankan.
-            </p>
+          <div className="concept-dl-item">
+            <dt className="concept-dt">Reference String</dt>
+            <dd className="concept-dd">
+              Urutan nomor halaman yang diakses proses dari waktu ke waktu. Contoh: <code className="concept-code">1, 2, 3, 4, 1, 2, 5</code>. Digunakan sebagai input simulasi algoritma.
+            </dd>
           </div>
-        </div>
+        </dl>
       </section>
 
       {/* Bagian 2: Algoritma FIFO */}
