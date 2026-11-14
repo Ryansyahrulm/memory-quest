@@ -300,7 +300,7 @@ export default function Quest() {
     if (hintUsed || !currentGroundStep) return
     setHintUsed(true)
 
-    let clue = ''
+    let clue
     switch (activeLevel.algoId) {
       case 'FIFO':
         clue = 'Petunjuk FIFO: Perhatikan halaman mana di antara frame yang masuk paling awal dalam urutan waktu.'
@@ -339,6 +339,7 @@ export default function Quest() {
             key={lvl.id}
             variant={levelKey === lvl.id ? 'primary' : 'secondary'}
             onClick={() => handleSelectLevel(lvl.id)}
+            aria-label={`Pilih tingkat kesulitan ${lvl.label} (${lvl.algoName}, ${lvl.frameCount} Frame)`}
             style={{ fontSize: 'var(--font-size-12)', padding: '6px 12px' }}
           >
             {lvl.label} ({lvl.algoName}, {lvl.frameCount} Frame)
@@ -423,6 +424,8 @@ export default function Quest() {
             <div
               className={`quest-feedback-box ${feedback.type === 'success' ? 'feedback-success' : feedback.type === 'error' ? 'feedback-error' : 'feedback-hint'}`}
               role="alert"
+              aria-live="assertive"
+              aria-atomic="true"
             >
               {feedback.text}
             </div>
@@ -432,14 +435,27 @@ export default function Quest() {
           <div className="quest-actions-row">
             {phase === 'guess_hit_fault' && (
               <>
-                <Button variant="primary" onClick={() => handleGuess(true)}>
+                <Button
+                  variant="primary"
+                  onClick={() => handleGuess(true)}
+                  aria-label="Tebak Page Hit untuk akses halaman saat ini (Shortcut keyboard: H)"
+                >
                   Tebak Hit (H)
                 </Button>
-                <Button variant="secondary" onClick={() => handleGuess(false)}>
+                <Button
+                  variant="secondary"
+                  onClick={() => handleGuess(false)}
+                  aria-label="Tebak Page Fault untuk akses halaman saat ini (Shortcut keyboard: F)"
+                >
                   Tebak Fault (F)
                 </Button>
                 {!hintUsed && (
-                  <Button variant="secondary" onClick={handleUseHint} style={{ marginLeft: 'auto' }}>
+                  <Button
+                    variant="secondary"
+                    onClick={handleUseHint}
+                    aria-label="Gunakan petunjuk dengan konsekuensi pengurangan 5 poin skor"
+                    style={{ marginLeft: 'auto' }}
+                  >
                     Gunakan Petunjuk (-5 poin)
                   </Button>
                 )}
@@ -447,7 +463,11 @@ export default function Quest() {
             )}
 
             {phase === 'step_done' && (
-              <Button variant="primary" onClick={handleNextStep}>
+              <Button
+                variant="primary"
+                onClick={handleNextStep}
+                aria-label={stepIndex + 1 >= activeLevel.pagesCount ? 'Lihat hasil akhir tantangan' : 'Lanjut ke langkah berikutnya (Shortcut: Spasi atau Enter)'}
+              >
                 {stepIndex + 1 >= activeLevel.pagesCount ? 'Lihat Hasil Akhir' : 'Langkah Berikutnya (Spasi)'}
               </Button>
             )}
@@ -463,8 +483,8 @@ export default function Quest() {
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: 'var(--space-12)', marginBottom: 'var(--space-16)' }}>
             <StatBlock label="Skor Akhir" value={score} variant="accent" description="Poin diperoleh" />
             <StatBlock label="Skor Tertinggi" value={highScore} variant="default" description="Tersimpan di peramban" />
-            <StatBlock label="Akurasi" value={`${accuracy}%`} variant={accuracy >= 70 ? 'hit' : 'fault'} description="Tingkat ketepatan tebakan" />
-            <StatBlock label="Sisa Nyawa" value={lives} variant={lives > 0 ? 'hit' : 'fault'} description="Dari 3 nyawa" />
+            <StatBlock label="Akurasi" value={`${accuracy}%`} variant="accent" description="Tingkat ketepatan tebakan" />
+            <StatBlock label="Sisa Nyawa" value={lives} variant="default" description="Dari 3 nyawa" />
           </div>
 
           {/* Daftar Langkah yang Salah */}
@@ -473,16 +493,26 @@ export default function Quest() {
               Evaluasi Langkah yang Keliru:
             </h3>
             {mistakes.length === 0 ? (
-              <p style={{ color: 'var(--color-hit)', fontSize: 'var(--font-size-14)' }}>
-                Luar biasa! Tidak ada langkah yang salah. Anda menguasai algoritma {activeLevel.algoName} dengan sempurna.
-              </p>
+              <div className="empty-state-box" style={{ textAlign: 'left', alignItems: 'flex-start', padding: 'var(--space-16)' }}>
+                <span className="empty-state-title">Sempurna! Tidak ada langkah yang salah.</span>
+                <p className="empty-state-desc">
+                  Anda berhasil menyelesaikan seluruh langkah algoritma {activeLevel.algoName} dengan tepat.
+                </p>
+              </div>
             ) : (
               <ul className="quest-summary-list">
                 {mistakes.map((m, idx) => (
                   <li key={idx} className="quest-mistake-item">
                     <strong>Langkah {m.step} (Halaman {m.page}):</strong>
                     <br />
-                    Jawaban Anda: <Badge variant="fault">{m.yourAnswer}</Badge> | Jawaban Benar: <Badge variant="hit">{m.correctAnswer}</Badge>
+                    Jawaban Anda:{' '}
+                    <Badge variant={m.yourAnswer === 'Hit' ? 'hit' : m.yourAnswer === 'Fault' ? 'fault' : 'neutral'}>
+                      {m.yourAnswer}
+                    </Badge>{' '}
+                    | Jawaban Benar:{' '}
+                    <Badge variant={m.correctAnswer === 'Hit' ? 'hit' : m.correctAnswer === 'Fault' ? 'fault' : 'neutral'}>
+                      {m.correctAnswer}
+                    </Badge>
                     <p style={{ marginTop: 'var(--space-4)', color: 'var(--color-text-muted)' }}>
                       Penjelasan: {m.explanation}
                     </p>
@@ -492,11 +522,19 @@ export default function Quest() {
             )}
           </div>
 
-          <div style={{ display: 'flex', gap: 'var(--space-12)', marginTop: 'var(--space-20)' }}>
-            <Button variant="primary" onClick={() => resetGame(seed)}>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 'var(--space-12)', marginTop: 'var(--space-20)' }}>
+            <Button
+              variant="primary"
+              onClick={() => resetGame(seed)}
+              aria-label="Mulai ulang tantangan dengan urutan halaman yang sama"
+            >
               Main Lagi (Seed Sama)
             </Button>
-            <Button variant="secondary" onClick={() => resetGame(Math.floor(Math.random() * 10000) + 1)}>
+            <Button
+              variant="secondary"
+              onClick={() => resetGame(Math.floor(Math.random() * 10000) + 1)}
+              aria-label="Mulai tantangan baru dengan deretan nomor halaman acak"
+            >
               Acak Tantangan Baru
             </Button>
           </div>

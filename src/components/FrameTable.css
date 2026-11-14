@@ -1,5 +1,6 @@
 .frame-table-container {
   width: 100%;
+  max-width: 100%;
   overflow-x: auto;
   border: 1px solid var(--color-border);
   border-radius: var(--radius);
@@ -7,6 +8,18 @@
   box-shadow: var(--shadow-sm);
   scrollbar-width: thin;
   scrollbar-color: var(--color-border) transparent;
+  -webkit-overflow-scrolling: touch;
+}
+
+.frame-table-container:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: -1px;
+}
+
+.frame-table-empty {
+  padding: var(--space-24);
+  text-align: center;
+  color: var(--color-text-muted);
 }
 
 .frame-table {
@@ -40,6 +53,15 @@
   min-width: 110px;
   z-index: 2;
   box-shadow: 1px 0 0 var(--color-border);
+}
+
+@media (max-width: 480px) {
+  .frame-table th.frame-label-col,
+  .frame-table td.frame-label-col {
+    min-width: 84px;
+    padding: var(--space-4) var(--space-8);
+    font-size: var(--font-size-12);
+  }
 }
 
 /* Header baris reference string */

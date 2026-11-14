@@ -62,10 +62,22 @@ export default function Simulator() {
               />
 
               <div className="simulator-quick-buttons">
-                <Button variant="secondary" onClick={fillClassic} type="button" style={{ fontSize: 'var(--font-size-12)', padding: '4px 8px' }}>
+                <Button
+                  variant="secondary"
+                  onClick={fillClassic}
+                  type="button"
+                  aria-label="Isi input dengan contoh reference string klasik"
+                  style={{ fontSize: 'var(--font-size-12)', padding: '4px 8px' }}
+                >
                   Isi contoh
                 </Button>
-                <Button variant="secondary" onClick={randomize} type="button" style={{ fontSize: 'var(--font-size-12)', padding: '4px 8px' }}>
+                <Button
+                  variant="secondary"
+                  onClick={randomize}
+                  type="button"
+                  aria-label="Acak deretan reference string baru"
+                  style={{ fontSize: 'var(--font-size-12)', padding: '4px 8px' }}
+                >
                   Acak
                 </Button>
               </div>
@@ -127,7 +139,7 @@ export default function Simulator() {
                   <Button
                     variant="primary"
                     onClick={togglePlay}
-                    aria-label={isPlaying ? 'Jeda otomatis' : 'Putar otomatis'}
+                    aria-label={isPlaying ? 'Jeda otomatis simulasi' : 'Putar otomatis simulasi'}
                   >
                     {isPlaying ? 'Jeda' : 'Putar'}
                   </Button>
@@ -155,11 +167,13 @@ export default function Simulator() {
 
                 <div className="playback-speed-group">
                   <span>Kecepatan:</span>
-                  <div className="speed-buttons" role="group" aria-label="Kecepatan pemutaran">
+                  <div className="speed-buttons" role="group" aria-label="Kecepatan pemutaran otomatis">
                     <button
                       type="button"
                       className={`speed-btn ${speed === 'slow' ? 'active' : ''}`}
                       onClick={() => setSpeed('slow')}
+                      aria-label="Atur kecepatan simulasi lambat"
+                      aria-pressed={speed === 'slow'}
                     >
                       Lambat
                     </button>
@@ -167,6 +181,8 @@ export default function Simulator() {
                       type="button"
                       className={`speed-btn ${speed === 'normal' ? 'active' : ''}`}
                       onClick={() => setSpeed('normal')}
+                      aria-label="Atur kecepatan simulasi normal"
+                      aria-pressed={speed === 'normal'}
                     >
                       Normal
                     </button>
@@ -174,6 +190,8 @@ export default function Simulator() {
                       type="button"
                       className={`speed-btn ${speed === 'fast' ? 'active' : ''}`}
                       onClick={() => setSpeed('fast')}
+                      aria-label="Atur kecepatan simulasi cepat"
+                      aria-pressed={speed === 'fast'}
                     >
                       Cepat
                     </button>
@@ -232,12 +250,18 @@ export default function Simulator() {
                 />
               </div>
             </>
+          ) : inputError ? (
+            <div className="error-state-box" role="alert">
+              <span className="error-state-title">Parameter Simulasi Tidak Valid</span>
+              <p className="error-state-desc">{inputError}</p>
+            </div>
           ) : (
-            <Card>
-              <p style={{ color: 'var(--color-text-muted)', textAlign: 'center', padding: 'var(--space-24)' }}>
-                {inputError || 'Masukkan parameter dan klik "Jalankan" untuk memulai simulasi.'}
+            <div className="empty-state-box">
+              <span className="empty-state-title">Simulasi Belum Dijalankan</span>
+              <p className="empty-state-desc">
+                Masukkan deretan angka reference string dan tentukan kapasitas frame pada formulir parameter di sebelah kiri, lalu klik &quot;Jalankan&quot; untuk memulai simulasi.
               </p>
-            </Card>
+            </div>
           )}
         </section>
       </div>

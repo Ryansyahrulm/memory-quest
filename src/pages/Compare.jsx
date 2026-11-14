@@ -4,6 +4,7 @@ import { simulate as simulateFIFO } from '../algorithms/fifo'
 import { simulate as simulateLRU } from '../algorithms/lru'
 import { simulate as simulateOptimal } from '../algorithms/optimal'
 import { parseReferenceString, PRESET_CLASSIC, PRESET_BELADY } from '../utils/parser'
+import { generateComparisonConclusion } from '../utils/conclusion'
 import './Compare.css'
 
 export default function Compare() {
@@ -37,15 +38,12 @@ export default function Compare() {
     // Cari page fault terendah
     const minFault = Math.min(...list.map((item) => item.totalFault))
 
-    // Generator teks kesimpulan otomatis
-    let conclusion = `Pada input ini, algoritma Optimal menghasilkan ${optResult.totalFault} page fault (${optResult.hitRatio}% hit ratio), `
-    if (optResult.totalFault < lruResult.totalFault && lruResult.totalFault < fifoResult.totalFault) {
-      conclusion += `lebih efisien dibandingkan LRU (${lruResult.totalFault} fault) dan FIFO (${fifoResult.totalFault} fault).`
-    } else if (lruResult.totalFault === fifoResult.totalFault) {
-      conclusion += `sementara LRU dan FIFO menghasilkan jumlah fault yang sama (${lruResult.totalFault} fault).`
-    } else {
-      conclusion += `sedangkan LRU menghasilkan ${lruResult.totalFault} fault dan FIFO menghasilkan ${fifoResult.totalFault} fault.`
-    }
+    // Generator teks kesimpulan perbandingan menggunakan utilitas murni
+    const conclusion = generateComparisonConclusion({
+      FIFO: fifoResult,
+      LRU: lruResult,
+      Optimal: optResult,
+    })
 
     return {
       valid: true,
@@ -121,11 +119,19 @@ export default function Compare() {
             }))}
           />
 
-          <div style={{ display: 'flex', gap: 'var(--space-8)', paddingBottom: 'var(--space-12)' }}>
-            <Button variant="secondary" onClick={handleApplyClassic}>
+          <div className="compare-preset-buttons">
+            <Button
+              variant="secondary"
+              onClick={handleApplyClassic}
+              aria-label="Terapkan contoh reference string standar"
+            >
               Contoh Standar
             </Button>
-            <Button variant="secondary" onClick={handleApplyBelady}>
+            <Button
+              variant="secondary"
+              onClick={handleApplyBelady}
+              aria-label="Terapkan preset string untuk demonstrasi Anomali Belady pada FIFO"
+            >
               Coba Anomali Belady
             </Button>
           </div>
@@ -149,11 +155,16 @@ export default function Compare() {
         )}
       </Card>
 
-      {comparisonData.valid && (
+      {comparisonData.valid ? (
         <>
           {/* 1. Tabel Perbandingan Kinerja */}
           <Card title="Tabel Perbandingan Kinerja" description="Evaluasi total hit, page fault, dan hit ratio ketiga algoritma.">
-            <div className="compare-table-wrapper">
+            <div
+              className="compare-table-wrapper"
+              tabIndex={0}
+              role="region"
+              aria-label="Tabel perbandingan performa algoritma (dapat digulir horizontal)"
+            >
               <table className="compare-table">
                 <thead>
                   <tr>
@@ -177,7 +188,7 @@ export default function Compare() {
                         <td style={{ fontFamily: 'var(--font-mono)' }}>{row.hitRatio}%</td>
                         <td>
                           {isBest ? (
-                            <Badge variant="hit">Terbaik</Badge>
+                            <Badge variant="neutral" style={{ fontWeight: 600 }}>Terbaik</Badge>
                           ) : (
                             <Badge variant="neutral">—</Badge>
                           )}
@@ -224,7 +235,7 @@ export default function Compare() {
           </Card>
 
           {/* 3. Kesimpulan Otomatis */}
-          <div className="conclusion-box" aria-live="polite">
+          <div className="conclusion-box" aria-live="polite" aria-atomic="true">
             <strong>Kesimpulan Analisis:</strong>
             <p style={{ marginTop: 'var(--space-4)' }}>{comparisonData.conclusion}</p>
           </div>
@@ -239,7 +250,7 @@ export default function Compare() {
                       {row.name} ({row.totalFault} Fault, {row.totalHit} Hit)
                     </h3>
                     {row.totalFault === comparisonData.minFault && (
-                      <Badge variant="hit">Fault Terendah</Badge>
+                      <Badge variant="neutral" style={{ fontWeight: 600 }}>Fault Terendah</Badge>
                     )}
                   </div>
                   <FrameTable
@@ -252,6 +263,18 @@ export default function Compare() {
             </div>
           </Card>
         </>
+      ) : comparisonData.error ? (
+        <div className="error-state-box" role="alert">
+          <span className="error-state-title">Parameter Perbandingan Tidak Valid</span>
+          <p className="error-state-desc">{comparisonData.error}</p>
+        </div>
+      ) : (
+        <div className="empty-state-box">
+          <span className="empty-state-title">Belum Ada Data Perbandingan</span>
+          <p className="empty-state-desc">
+            Masukkan deretan angka reference string yang valid pada kolom di atas untuk membandingkan kinerja algoritma FIFO, LRU, dan Optimal.
+          </p>
+        </div>
       )}
     </div>
   )

@@ -104,9 +104,16 @@
 /* Tabel Mini Statis */
 .static-table-wrapper {
   overflow-x: auto;
+  max-width: 100%;
   border: 1px solid var(--color-border);
   border-radius: var(--radius);
   margin-top: var(--space-8);
+  -webkit-overflow-scrolling: touch;
+}
+
+.static-table-wrapper:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: -1px;
 }
 
 .static-table {

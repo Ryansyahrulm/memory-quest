@@ -13,10 +13,14 @@ export default function Home() {
 
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 'var(--space-12)' }}>
         <Link to="/simulator" style={{ textDecoration: 'none' }}>
-          <Button variant="primary">Mulai Simulasi</Button>
+          <Button variant="primary" aria-label="Buka simulator manajemen memori">
+            Mulai Simulasi
+          </Button>
         </Link>
         <Link to="/quest" style={{ textDecoration: 'none' }}>
-          <Button variant="secondary">Main Quest</Button>
+          <Button variant="secondary" aria-label="Mulai bermain mode tantangan Quest">
+            Main Quest
+          </Button>
         </Link>
       </div>
 

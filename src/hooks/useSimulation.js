@@ -15,8 +15,15 @@ export function useSimulation(initialConfig = {}) {
   const [algorithmId, setAlgorithmId] = useState(initialConfig.algorithmId || 'FIFO')
   const [inputError, setInputError] = useState(null)
 
-  // Hasil simulasi
-  const [result, setResult] = useState(null)
+  // Hasil simulasi awal diinisialisasi secara sinkron
+  const [result, setResult] = useState(() => {
+    const initialInput = initialConfig.refString || PRESET_CLASSIC
+    const { valid, numbers } = parseReferenceString(initialInput)
+    if (!valid) return null
+    const count = Math.max(1, Math.min(7, Number(initialConfig.frameCount) || 3))
+    const algo = ALGORITHMS[initialConfig.algorithmId || 'FIFO'] || ALGORITHMS.FIFO
+    return algo.simulate(numbers, count)
+  })
 
   // State pemutaran langkah (playback)
   const [currentStepIndex, setCurrentStepIndex] = useState(0)
@@ -44,11 +51,6 @@ export function useSimulation(initialConfig = {}) {
     setIsPlaying(false)
     return true
   }, [refStringInput, frameCount, algorithmId])
-
-  // Jalankan simulasi awal
-  useEffect(() => {
-    runSimulation()
-  }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   // Kontrol navigasi langkah
   const nextStep = useCallback(() => {

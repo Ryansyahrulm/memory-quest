@@ -38,7 +38,7 @@ export function simulate(referenceString = [], frameCount = 3) {
       // Halaman belum ada di memori (Fault)
       totalFault++
       let replaced = null
-      let targetIndex = -1
+      let targetIndex
 
       if (frames.length < frameCount) {
         targetIndex = frames.length

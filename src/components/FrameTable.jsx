@@ -9,7 +9,7 @@ export default function FrameTable({
 }) {
   if (!steps || steps.length === 0) {
     return (
-      <div className="frame-table-container" style={{ padding: 'var(--space-24)', textAlign: 'center', color: 'var(--color-text-muted)' }}>
+      <div className="frame-table-container frame-table-empty">
         Belum ada data simulasi untuk ditampilkan.
       </div>
     )
@@ -23,7 +23,12 @@ export default function FrameTable({
   const frameIndices = Array.from({ length: frameCount }, (_, i) => i)
 
   return (
-    <div className="frame-table-container">
+    <div
+      className="frame-table-container"
+      tabIndex={0}
+      role="region"
+      aria-label="Tabel visualisasi simulasi frame memori (dapat digulir horizontal)"
+    >
       <table className="frame-table">
         <caption className="sr-only" style={{ position: 'absolute', width: 1, height: 1, overflow: 'hidden', clip: 'rect(0,0,0,0)' }}>
           {caption}
@@ -105,6 +110,7 @@ export default function FrameTable({
                   key={idx}
                   className={`status-row-cell ${statusClass} ${isCurrent ? 'col-current-step' : ''}`}
                   title={step.isHit ? 'Page Hit' : 'Page Fault'}
+                  aria-label={step.isHit ? 'Page Hit' : 'Page Fault'}
                 >
                   {step.isHit ? 'H' : 'F'}
                 </td>

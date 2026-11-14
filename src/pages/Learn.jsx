@@ -77,7 +77,12 @@ export default function Learn() {
 
           <div>
             <strong>Contoh Mini &mdash; 3 Frame, Ref: 1 2 3 4 1</strong>
-            <div className="static-table-wrapper">
+            <div
+              className="static-table-wrapper"
+              tabIndex={0}
+              role="region"
+              aria-label="Tabel contoh pergantian frame FIFO (dapat digulir horizontal)"
+            >
               <table className="static-table">
                 <thead>
                   <tr>
@@ -161,7 +166,12 @@ export default function Learn() {
 
           <div>
             <strong>Contoh Mini &mdash; 3 Frame, Ref: 1 2 3 2 4</strong>
-            <div className="static-table-wrapper">
+            <div
+              className="static-table-wrapper"
+              tabIndex={0}
+              role="region"
+              aria-label="Tabel contoh pergantian frame LRU (dapat digulir horizontal)"
+            >
               <table className="static-table">
                 <thead>
                   <tr>
@@ -245,7 +255,12 @@ export default function Learn() {
 
           <div>
             <strong>Contoh Mini &mdash; 3 Frame, Ref: 1 2 3 2 4</strong>
-            <div className="static-table-wrapper">
+            <div
+              className="static-table-wrapper"
+              tabIndex={0}
+              role="region"
+              aria-label="Tabel contoh pergantian frame Optimal (dapat digulir horizontal)"
+            >
               <table className="static-table">
                 <thead>
                   <tr>
