@@ -11,8 +11,8 @@
   gap: var(--space-12);
 }
 
-/* Daftar definisi konsep dasar */
-.concept-dl {
+/* Daftar istilah konsep dasar */
+.learn-glossary {
   display: flex;
   flex-direction: column;
   gap: 0;
@@ -21,44 +21,41 @@
   overflow: hidden;
 }
 
-.concept-dl-item {
+.glossary-item {
   display: grid;
   grid-template-columns: 160px 1fr;
-  align-items: baseline;
-  gap: var(--space-12);
-  padding: var(--space-12) var(--space-16);
   border-bottom: 1px solid var(--color-border);
-  font-size: var(--font-size-14);
-  line-height: 1.6;
 }
 
-.concept-dl-item:last-child {
+.glossary-item:last-child {
   border-bottom: none;
 }
 
-.concept-dt {
+.glossary-item dt {
+  font-size: var(--font-size-14);
   font-weight: 600;
+  padding: var(--space-12) var(--space-16);
+  background-color: var(--color-surface);
   color: var(--color-text);
+  border-right: 1px solid var(--color-border);
 }
 
-.concept-dd {
+.glossary-item dd {
+  font-size: var(--font-size-14);
+  line-height: 1.6;
+  padding: var(--space-12) var(--space-16);
+  color: var(--color-text);
   margin: 0;
-  color: var(--color-text);
 }
 
-.concept-code {
-  font-family: var(--font-mono);
-  font-size: var(--font-size-12);
-  background-color: var(--color-accent-subtle);
-  color: var(--color-accent);
-  padding: 1px 5px;
-  border-radius: 3px;
-}
-
-@media (max-width: 480px) {
-  .concept-dl-item {
+@media (max-width: 540px) {
+  .glossary-item {
     grid-template-columns: 1fr;
-    gap: var(--space-4);
+  }
+  .glossary-item dt {
+    border-right: none;
+    border-bottom: 1px solid var(--color-border);
+    padding-bottom: var(--space-8);
   }
 }
 
@@ -75,7 +72,9 @@
 
 .algo-header {
   border-bottom: 1px solid var(--color-border);
-  padding-bottom: var(--space-8);
+  padding-bottom: var(--space-12);
+  font-size: var(--font-size-14);
+  line-height: 1.6;
 }
 
 .algo-pro-con-grid {
@@ -91,12 +90,15 @@
   }
 }
 
-.pro-list, .con-list {
+.pro-list,
+.con-list {
   padding-left: var(--space-20);
   margin-top: var(--space-4);
   display: flex;
   flex-direction: column;
   gap: var(--space-4);
+  font-size: var(--font-size-14);
+  line-height: 1.5;
 }
 
 /* Tabel Mini Statis */
@@ -111,6 +113,7 @@
   width: 100%;
   border-collapse: collapse;
   font-size: var(--font-size-12);
+  font-family: var(--font-mono);
   text-align: center;
 }
 
@@ -124,6 +127,7 @@
 .static-table th {
   background-color: #f5f5f4;
   font-weight: 600;
+  font-family: var(--font-sans);
 }
 
 .static-hit {
@@ -136,4 +140,11 @@
   background-color: var(--color-fault-subtle);
   color: var(--color-fault);
   font-weight: 600;
+}
+
+.table-note {
+  font-size: var(--font-size-12);
+  color: var(--color-text-muted);
+  margin-top: var(--space-8);
+  line-height: 1.5;
 }
